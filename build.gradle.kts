@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
+
 plugins {
     val kotlinVersion = "1.8.22"
     kotlin("jvm") version kotlinVersion
@@ -28,6 +30,7 @@ val seleniumVersion = "4.9.1"
 val freemarkerVersion = "2.3.32"
 val skikoVersion = "0.7.58"
 val serializationVersion = "1.5.1"
+// jar目标运行环境
 val skikoOsArch = SkikoOSArch.LINUX_X64
 
 repositories {
@@ -35,6 +38,10 @@ repositories {
     maven("https://maven.aliyun.com/repository/public/")
     maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     mavenLocal()
+}
+
+mirai {
+    base.archivesName.set(base.archivesName.get() + "_" + skikoOsArch.name.toLowerCaseAsciiOnly())
 }
 
 

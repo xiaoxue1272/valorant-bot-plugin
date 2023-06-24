@@ -3,7 +3,8 @@ package io.tiangou.cron
 import cn.hutool.cron.pattern.CronPattern
 import cn.hutool.cron.pattern.CronPatternUtil
 import io.ktor.util.date.*
-import io.tiangou.logic.DailyStoreImageGenerator
+import io.tiangou.Global
+import io.tiangou.logic.utils.DailyStoreImageGenerator
 import io.tiangou.other.http.actions
 import io.tiangou.repository.UserCacheRepository
 import kotlinx.coroutines.*
@@ -61,13 +62,17 @@ sealed class AbstractTask : CoroutineScope {
     abstract var enable: Boolean
 
     @Transient
-    override var coroutineContext: CoroutineContext = CoroutineName("Task :${this::class::simpleName}")
+    final override val coroutineContext: CoroutineContext = Global.coroutineScope.coroutineContext + CoroutineName("Task :${this::class::simpleName}")
 
     @Transient
     private lateinit var cronPattern: CronPattern
 
     @Transient
     private lateinit var job: Job
+
+    init {
+       coroutineContext[Job]?.invokeOnCompletion { if (it != null) onDisable() }
+    }
 
     fun onEnable() {
         cronPattern = CronPattern.of(cron)
@@ -76,10 +81,9 @@ sealed class AbstractTask : CoroutineScope {
                 val waitOnExecuteTimeMillis =
                     CronPatternUtil.nextDateAfter(cronPattern, Date(), true).time - getTimeMillis()
                 delay(waitOnExecuteTimeMillis)
-                runBlocking { execute() }
+                runCatching { execute() }
             }
         }
-        coroutineContext += job
         log.info("已启用任务 [${this::class.simpleName}]")
     }
 

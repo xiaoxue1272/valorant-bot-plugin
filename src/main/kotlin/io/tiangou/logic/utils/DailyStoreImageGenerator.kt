@@ -1,4 +1,4 @@
-package io.tiangou.logic
+package io.tiangou.logic.utils
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -9,7 +9,7 @@ import io.tiangou.api.RiotApi
 import io.tiangou.api.RiotClientData
 import io.tiangou.api.data.StorefrontRequest
 import io.tiangou.other.http.client
-import io.tiangou.other.jdbc.SqliteManager
+import io.tiangou.other.jdbc.SqliteHelper
 import io.tiangou.other.skiko.*
 import io.tiangou.repository.ContentTier
 import io.tiangou.repository.Theme
@@ -50,14 +50,14 @@ object DailyStoreImageGenerator {
 
     private fun getSkinImageUrlData(skinLevelUuid: String): SkinImageData {
         val skinLevel =
-            SqliteManager.executeQuery(WeaponSkinLevel.queryByUUID(skinLevelUuid), WeaponSkinLevel::convertResultSet)
-        val skin = SqliteManager.executeQuery(
+            SqliteHelper.executeQueryOne(WeaponSkinLevel.queryByUUID(skinLevelUuid), WeaponSkinLevel::convertResultSet)
+        val skin = SqliteHelper.executeQueryOne(
             WeaponSkin.queryByUUID(skinLevel.weaponSkinUuid),
             WeaponSkin::convertResultSet
         )
-        val theme = skin.themeUuid?.let { SqliteManager.executeQuery(Theme.queryByUUID(it), Theme::convertResultSet) }
+        val theme = skin.themeUuid?.let { SqliteHelper.executeQueryOne(Theme.queryByUUID(it), Theme::convertResultSet) }
         val contentTier = skin.contentTiersUuid?.let {
-            SqliteManager.executeQuery(
+            SqliteHelper.executeQueryOne(
                 ContentTier.queryByUUID(it),
                 ContentTier::convertResultSet
             )

@@ -1,5 +1,6 @@
 package io.tiangou
 
+import io.tiangou.Global.coroutineScope
 import io.tiangou.repository.UserCacheRepository
 import kotlinx.coroutines.launch
 import net.mamoe.mirai.contact.Contact
@@ -41,7 +42,7 @@ object EventHandler : SimpleListenerHost() {
                 reply("正在执行中,请稍候")
                 return
             }
-            processJob = Global.coroutineScope.launch {
+            processJob = launch {
                 runCatching {
                     while (true) {
                         if (!loadLogic(this@onMessage.message.toText()).process(this@onMessage, userCache)) {

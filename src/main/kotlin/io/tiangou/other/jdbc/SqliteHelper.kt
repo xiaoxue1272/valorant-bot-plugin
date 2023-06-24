@@ -8,7 +8,7 @@ import java.sql.ResultSet
 import java.util.*
 
 
-internal object SqliteManager {
+internal object SqliteHelper {
 
 
     private val connection: Connection = JDBC.createConnection(
@@ -18,7 +18,7 @@ internal object SqliteManager {
 
     fun execute(sql: String) = connection.createStatement().execute(sql)
 
-    fun <T> executeQuery(sql: String, block: (ResultSet) -> T): T =
+    fun <T> executeQueryOne(sql: String, block: (ResultSet) -> T): T =
         block(connection.createStatement().executeQuery(sql))
 
 }

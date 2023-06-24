@@ -9,6 +9,7 @@ import io.tiangou.api.data.AuthCookiesRequest
 import io.tiangou.api.data.AuthRequest
 import io.tiangou.api.data.AuthResponse
 import io.tiangou.api.data.MultiFactorAuthRequest
+import io.tiangou.logic.utils.DailyStoreImageGenerator
 import io.tiangou.other.http.actions
 import io.tiangou.repository.UserCache
 import kotlinx.coroutines.runBlocking

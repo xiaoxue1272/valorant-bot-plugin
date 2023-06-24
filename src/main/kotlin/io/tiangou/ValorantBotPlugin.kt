@@ -1,7 +1,7 @@
 package io.tiangou
 
 import io.tiangou.cron.CronTaskManager
-import io.tiangou.repository.PersistDataInitialSaver
+import io.tiangou.repository.ValorantThirdPartyDataInitializeSaver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -34,7 +34,7 @@ object ValorantBotPlugin : KotlinPlugin(
 
     override fun onEnable() {
         CronTaskManager.reload()
-        runBlocking { PersistDataInitialSaver.init() }
+        runBlocking { ValorantThirdPartyDataInitializeSaver.init() }
         CronTaskManager.start()
         EventHandler.registerTo(GlobalEventChannel)
         logger.info("valorant bot plugin enabled")
