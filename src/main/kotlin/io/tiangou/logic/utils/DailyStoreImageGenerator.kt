@@ -49,19 +49,10 @@ object DailyStoreImageGenerator {
 
 
     private fun getSkinImageUrlData(skinLevelUuid: String): SkinImageData {
-        val skinLevel =
-            SqliteHelper.executeQueryOne(WeaponSkinLevel.queryByUUID(skinLevelUuid), WeaponSkinLevel::convertResultSet)
-        val skin = SqliteHelper.executeQueryOne(
-            WeaponSkin.queryByUUID(skinLevel.weaponSkinUuid),
-            WeaponSkin::convertResultSet
-        )
-        val theme = skin.themeUuid?.let { SqliteHelper.executeQueryOne(Theme.queryByUUID(it), Theme::convertResultSet) }
-        val contentTier = skin.contentTiersUuid?.let {
-            SqliteHelper.executeQueryOne(
-                ContentTier.queryByUUID(it),
-                ContentTier::convertResultSet
-            )
-        }
+        val skinLevel = WeaponSkinLevel(skinLevelUuid).queryOne()
+        val skin = WeaponSkin(skinLevel.weaponSkinUuid).queryOne()
+        val theme = skin.themeUuid?.let { Theme(it).queryOne() }
+        val contentTier = skin.contentTiersUuid?.let { ContentTier(it).queryOne() }
         return SkinImageData(
             skinLevel.displayIcon,
             contentTier?.displayIcon,

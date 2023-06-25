@@ -52,7 +52,7 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     implementation("io.ktor:ktor-client-encoding:$ktorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$serializationVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$serializationVersion")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.xerial:sqlite-jdbc:3.42.0.0")
     implementation("cn.hutool:hutool-cron:5.8.20")
     // skiko support
