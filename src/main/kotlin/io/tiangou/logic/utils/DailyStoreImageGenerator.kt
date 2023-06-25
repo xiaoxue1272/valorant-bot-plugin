@@ -9,7 +9,6 @@ import io.tiangou.api.RiotApi
 import io.tiangou.api.RiotClientData
 import io.tiangou.api.data.StorefrontRequest
 import io.tiangou.other.http.client
-import io.tiangou.other.jdbc.SqliteHelper
 import io.tiangou.other.skiko.*
 import io.tiangou.repository.ContentTier
 import io.tiangou.repository.Theme
