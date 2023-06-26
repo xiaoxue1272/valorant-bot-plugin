@@ -4,7 +4,7 @@ plugins {
     val kotlinVersion = "1.8.22"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
-    id("net.mamoe.mirai-console") version "2.15.0-RC"
+    id("net.mamoe.mirai-console") version "2.14.0"
 }
 
 enum class SkikoOSArch(
@@ -22,7 +22,7 @@ enum class SkikoOSArch(
 }
 
 group = "io.tiangou.valobot"
-version = "0.4.0"
+version = "0.4.1-pre"
 
 val kotlinVersion = "1.8.20"
 val ktorVersion = "2.2.4"

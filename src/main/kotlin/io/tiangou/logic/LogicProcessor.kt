@@ -126,6 +126,7 @@ object VerifyRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
                         event.reply("登录成功")
                         userCache.isRiotAccountLogin = true
                     }
+
                     else -> event.reply("登录失败,请重新登录")
                 }
             }
@@ -225,7 +226,6 @@ object QueryPlayerDailyStoreItemProcessor : LogicProcessor<MessageEvent> {
         return false
     }
 }
-
 
 
 @Serializable

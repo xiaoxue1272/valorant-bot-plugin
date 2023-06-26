@@ -7,7 +7,7 @@ import kotlinx.coroutines.withContext
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.utils.MiraiLogger
 import java.sql.ResultSet
-import java.util.StringJoiner
+import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.memberProperties
@@ -20,7 +20,7 @@ import kotlin.reflect.jvm.javaField
 annotation class Column(val jdbcType: String, val isNotNull: Boolean = false, val extraProperties: String = "")
 
 
-abstract class PersistenceData<T: Any> {
+abstract class PersistenceData<T : Any> {
 
     abstract val relation: ObjectTableRelation<T>
 
@@ -75,7 +75,7 @@ abstract class PersistenceData<T: Any> {
 
 }
 
-abstract class ObjectTableRelation<T: Any>(internal val type: KClass<T>) {
+abstract class ObjectTableRelation<T : Any>(internal val type: KClass<T>) {
 
     class FieldColumnRelation(val type: KClass<*>, val column: Column)
 
@@ -92,10 +92,12 @@ abstract class ObjectTableRelation<T: Any>(internal val type: KClass<T>) {
     internal val table: String = type.simpleName!!
 
     internal val createTableSql: String = run {
-        "create table if not exists $table(${columns.map {
-            val column = it.value.column
-            "${it.key} ${column.jdbcType} ${column.extraProperties} ${if (column.isNotNull) "not null" else ""}"
-        }.joinToString(",")});"
+        "create table if not exists $table(${
+            columns.map {
+                val column = it.value.column
+                "${it.key} ${column.jdbcType} ${column.extraProperties} ${if (column.isNotNull) "not null" else ""}"
+            }.joinToString(",")
+        });"
     }
 }
 
@@ -106,24 +108,24 @@ data class WeaponSkin(
     val contentTiersUuid: String? = null,
     @Column("varchar(100)")
     val themeUuid: String? = null
-): PersistenceData<WeaponSkin>() {
+) : PersistenceData<WeaponSkin>() {
 
     override val relation: ObjectTableRelation<WeaponSkin> = WeaponSkin
 
-    companion object: ObjectTableRelation<WeaponSkin>(WeaponSkin::class)
+    companion object : ObjectTableRelation<WeaponSkin>(WeaponSkin::class)
 
 }
 
 data class WeaponSkinLevel(
-    @Column("varchar(100)", true, "primary key")val uuid: String? = null,
+    @Column("varchar(100)", true, "primary key") val uuid: String? = null,
     @Column("varchar(255)") val displayIcon: String? = null,
     @Column("varchar(100)") val displayName: String? = null,
     @Column("varchar(100)", true) val weaponSkinUuid: String? = null,
-): PersistenceData<WeaponSkinLevel>() {
+) : PersistenceData<WeaponSkinLevel>() {
 
     override val relation: ObjectTableRelation<WeaponSkinLevel> = WeaponSkinLevel
 
-    companion object: ObjectTableRelation<WeaponSkinLevel>(WeaponSkinLevel::class)
+    companion object : ObjectTableRelation<WeaponSkinLevel>(WeaponSkinLevel::class)
 
 }
 
@@ -135,7 +137,7 @@ data class ContentTier(
 
     override val relation: ObjectTableRelation<ContentTier> = ContentTier
 
-    companion object: ObjectTableRelation<ContentTier>(ContentTier::class)
+    companion object : ObjectTableRelation<ContentTier>(ContentTier::class)
 
 }
 
@@ -146,7 +148,7 @@ data class Theme(
 
     override val relation: ObjectTableRelation<Theme> = Theme
 
-    companion object: ObjectTableRelation<Theme>(Theme::class)
+    companion object : ObjectTableRelation<Theme>(Theme::class)
 
 }
 

@@ -20,13 +20,14 @@ data class UserCache(
     @Transient val logicSelector: LogicSelector = LogicSelector(),
 ) {
 
-    @Transient val logicTransferData: LogicTransferData = LogicTransferData()
+    @Transient
+    val logicTransferData: LogicTransferData = LogicTransferData()
 
     fun autoClean() =
         logicSelector.takeIf { !it.isStatusNormal() }?.apply {
             logicSelector.clean()
             logicTransferData.clean()
-    }
+        }
 
     data class LogicTransferData(
         var account: String? = null,

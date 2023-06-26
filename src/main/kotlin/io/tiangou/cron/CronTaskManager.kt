@@ -66,7 +66,8 @@ sealed class AbstractTask : CoroutineScope {
     abstract var enable: Boolean
 
     @Transient
-    final override val coroutineContext: CoroutineContext = Global.coroutineScope.coroutineContext + CoroutineName("Task :${this::class::simpleName}")
+    final override val coroutineContext: CoroutineContext =
+        Global.coroutineScope.coroutineContext + CoroutineName("Task :${this::class::simpleName}")
 
     @Transient
     private lateinit var cronPattern: CronPattern
@@ -75,7 +76,7 @@ sealed class AbstractTask : CoroutineScope {
     private lateinit var job: Job
 
     init {
-       coroutineContext[Job]?.invokeOnCompletion { if (it != null) onDisable() }
+        coroutineContext[Job]?.invokeOnCompletion { if (it != null) onDisable() }
     }
 
     fun onEnable() {

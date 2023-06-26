@@ -1,6 +1,5 @@
 package io.tiangou.logic
 
-import cn.hutool.core.io.FileUtil.clean
 import io.tiangou.repository.LogicRepository
 import kotlinx.coroutines.Job
 import net.mamoe.mirai.event.events.MessageEvent
@@ -44,7 +43,7 @@ class LogicSelector {
         logicTimestamp = null
     }
 
-    fun isStatusNormal(): Boolean  {
+    fun isStatusNormal(): Boolean {
         if (isLast()) {
             return false
         }
