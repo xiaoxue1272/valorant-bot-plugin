@@ -39,12 +39,10 @@ object CronTaskManager : AutoSavePluginConfig("cron-task") {
         }
     }
 
-    fun <T : AbstractTask> enableTask(task: T) {
-        task.switch(true)
-    }
-
-    fun <T : AbstractTask> disableTask(task: T) {
-        task.switch(false)
+    fun stop() {
+        taskList.forEach {
+            it.takeIf { it.enable }?.onDisable()
+        }
     }
 
 }
@@ -73,21 +71,21 @@ sealed class AbstractTask : CoroutineScope {
         coroutineContext[Job]?.invokeOnCompletion { if (it != null && enable) onDisable() }
     }
 
-    fun newCron(cron: String) {
-        synchronized(this) {
-            this.cron = cron
-        }
-    }
-
-    fun switch(enable: Boolean) {
+    fun enable(enable: Boolean) {
         synchronized(this) {
             if (this.enable) {
                 onDisable()
             }
+            this.enable = enable
             if (enable) {
                 onEnable()
             }
-            this.enable = enable
+        }
+    }
+
+    fun <T : AbstractTask> disableTask(task: T) {
+        task.apply {
+
         }
     }
 
@@ -102,7 +100,6 @@ sealed class AbstractTask : CoroutineScope {
                 delay(1000)
             }
         }
-        coroutineContext[Job]?.invokeOnCompletion { if (it != null) onDisable() }
         log.info("已启用任务 [${this::class.simpleName}]")
     }
 
