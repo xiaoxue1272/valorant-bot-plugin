@@ -41,7 +41,6 @@ object ValorantBotPlugin : KotlinPlugin(
     }
 
     override fun onDisable() {
-        CronTaskManager.stop()
         EventHandler.cancelAll()
         logger.info("valorant bot plugin disabled")
     }

@@ -93,7 +93,6 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
             when (authResponse.type) {
                 AuthResponse.RESPONSE -> {
                     flushAccessToken(authResponse.response!!.parameters.uri)
-                    flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
                     event.reply("登录成功")
                     userCache.isRiotAccountLogin = true
                 }
@@ -122,7 +121,6 @@ object VerifyRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
                 when (authResponse.type) {
                     AuthResponse.RESPONSE -> {
                         flushAccessToken(authResponse.response!!.parameters.uri)
-                        flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
                         event.reply("登录成功")
                         userCache.isRiotAccountLogin = true
                     }
@@ -226,7 +224,6 @@ object QueryPlayerDailyStoreItemProcessor : LogicProcessor<MessageEvent> {
         return false
     }
 }
-
 
 @Serializable
 object SubscribeTaskDailyStore : LogicProcessor<MessageEvent> {
