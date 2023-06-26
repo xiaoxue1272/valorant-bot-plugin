@@ -83,12 +83,6 @@ sealed class AbstractTask : CoroutineScope {
         }
     }
 
-    fun <T : AbstractTask> disableTask(task: T) {
-        task.apply {
-
-        }
-    }
-
     fun onEnable() {
         cronPattern = CronPattern.of(cron)
         job = launch {

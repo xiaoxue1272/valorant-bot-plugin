@@ -35,12 +35,13 @@ object ValorantBotPlugin : KotlinPlugin(
     override fun onEnable() {
         CronTaskManager.reload()
         runBlocking { ValorantThirdPartyPersistenceDataInitiator.init() }
-        CronTaskManager.start()
         EventHandler.registerTo(GlobalEventChannel)
+        CronTaskManager.start()
         logger.info("valorant bot plugin enabled")
     }
 
     override fun onDisable() {
+        CronTaskManager.stop()
         EventHandler.cancelAll()
         logger.info("valorant bot plugin disabled")
     }
