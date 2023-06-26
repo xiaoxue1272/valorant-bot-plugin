@@ -22,7 +22,7 @@ enum class SkikoOSArch(
 }
 
 group = "io.tiangou.valobot"
-version = "0.4.0"
+version = "0.4.1"
 
 val kotlinVersion = "1.8.20"
 val ktorVersion = "2.2.4"
@@ -52,7 +52,6 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     implementation("io.ktor:ktor-client-encoding:$ktorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$serializationVersion")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.xerial:sqlite-jdbc:3.42.0.0")
     implementation("cn.hutool:hutool-cron:5.8.20")
     // skiko support

@@ -15,8 +15,6 @@ import net.mamoe.mirai.message.data.PlainText
 import net.mamoe.mirai.message.data.content
 
 
-const val VERSION = "0.4.0"
-
 fun MessageChain.toText() =
     MessageChainBuilder().apply { addAll(this@toText.filterIsInstance<PlainText>()) }.asMessageChain().content.trim()
 
@@ -25,7 +23,7 @@ object ValorantBotPlugin : KotlinPlugin(
     description = JvmPluginDescription(
         id = "io.tiangou.valo-bot-plugin",
         name = "valorant-bot-plugin",
-        version = VERSION
+        version = "0.4.1"
     )
     {
         author("xiaoxue1272")
