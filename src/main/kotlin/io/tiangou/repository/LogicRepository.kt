@@ -24,8 +24,7 @@ object LogicRepository : JsonStorage<Map<String, List<LogicProcessor<MessageEven
         log.info("Valorant Bot Logic List loaded")
     }
 
-    internal fun find(key: String): List<LogicProcessor<MessageEvent>> =
-        logicConfig[key] ?: throw ValorantRuntimeException("未找到对应操作,请检查输入是否正确")
+    internal fun find(key: String): List<LogicProcessor<MessageEvent>>? = logicConfig[key]
 
 }
 
