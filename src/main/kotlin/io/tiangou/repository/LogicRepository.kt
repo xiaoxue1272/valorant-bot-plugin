@@ -2,12 +2,12 @@ package io.tiangou.repository
 
 import io.tiangou.JsonStorage
 import io.tiangou.StoragePathEnum
+import io.tiangou.ValorantRuntimeException
 import io.tiangou.logic.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.serializer
 import net.mamoe.mirai.event.events.MessageEvent
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import net.mamoe.mirai.utils.MiraiLogger
 
 object LogicRepository : JsonStorage<Map<String, List<LogicProcessor<MessageEvent>>>>(
     "logic-list",
@@ -15,7 +15,7 @@ object LogicRepository : JsonStorage<Map<String, List<LogicProcessor<MessageEven
     serializer()
 ) {
 
-    private val log: Logger = LoggerFactory.getLogger(this::class.java)
+    private val log: MiraiLogger = MiraiLogger.Factory.create(this::class)
 
     private val logicConfig: Map<String, List<LogicProcessor<MessageEvent>>> =
         runBlocking { load() ?: store(DEFAULT_LOGIC_MAP) }
@@ -25,7 +25,7 @@ object LogicRepository : JsonStorage<Map<String, List<LogicProcessor<MessageEven
     }
 
     internal fun find(key: String): List<LogicProcessor<MessageEvent>> =
-        logicConfig[key] ?: listOf(HelpListLogicProcessor)
+        logicConfig[key] ?: throw ValorantRuntimeException("未找到对应操作,请检查输入是否正确")
 
 }
 
@@ -48,6 +48,7 @@ val DEFAULT_LOGIC_MAP: Map<String, List<LogicProcessor<MessageEvent>>> = mapOf(
         QueryPlayerDailyStoreItemProcessor
     ),
     "更新每日商店推送任务状态" to listOf(
+        CheckRiotStatusAndSettingProcessor,
         SubscribeTaskDailyStore
     )
 )

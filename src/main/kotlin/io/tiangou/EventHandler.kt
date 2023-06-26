@@ -1,6 +1,5 @@
 package io.tiangou
 
-import io.tiangou.Global.coroutineScope
 import io.tiangou.repository.UserCacheRepository
 import kotlinx.coroutines.launch
 import net.mamoe.mirai.contact.Contact
@@ -11,12 +10,11 @@ import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.events.MessageEvent
 import net.mamoe.mirai.event.events.NewFriendRequestEvent
 import net.mamoe.mirai.message.data.*
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import net.mamoe.mirai.utils.MiraiLogger
 
 object EventHandler : SimpleListenerHost() {
 
-    private val log: Logger = LoggerFactory.getLogger(this::class.java)
+    private val log: MiraiLogger = MiraiLogger.Factory.create(this::class)
 
     @EventHandler
     suspend fun BotInvitedJoinGroupRequestEvent.onMessage() {
@@ -51,10 +49,10 @@ object EventHandler : SimpleListenerHost() {
                     }
                 }.onFailure {
                     if (it is ValorantRuntimeException) {
-                        log.warn("qq user:[${sender.id}]", it)
+                        log.warning("qq user:[${sender.id}]", it)
                         reply("${it.message}")
                     } else {
-                        log.warn("processing valo bot logic throw throwable", it)
+                        log.warning("processing valo bot logic throw throwable", it)
                         reply("error: ${it.message}")
                     }
                     isRunningError = true
@@ -62,6 +60,7 @@ object EventHandler : SimpleListenerHost() {
             }
             processJob!!.invokeOnCompletion {
                 processJob = null
+                userCache.logicTransferData.clear()
             }
             processJob!!.join()
         }

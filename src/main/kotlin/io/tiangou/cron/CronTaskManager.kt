@@ -7,6 +7,7 @@ import io.tiangou.Global
 import io.tiangou.logic.utils.DailyStoreImageGenerator
 import io.tiangou.other.http.actions
 import io.tiangou.repository.UserCacheRepository
+import io.tiangou.repository.ValorantThirdPartyPersistenceDataInitiator
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -26,7 +27,10 @@ object CronTaskManager : AutoSavePluginConfig("cron-task") {
     @ValueName("taskList")
     @ValueDescription("定时任务集合")
     val taskList: List<AbstractTask> by value(
-        listOf(SubscribeDailyStore("0 10 08 * * ? *", true))
+        listOf(
+            SubscribeDailyStore("0 10 08 * * ? *", true),
+            ValorantPersistenceDataFlush("0 0 9 ? * 7 *", true)
+        )
     )
 
     fun start() {
@@ -130,3 +134,23 @@ class SubscribeDailyStore(
     }
 
 }
+
+@Serializable
+class ValorantPersistenceDataFlush(
+    override var cron: String,
+    override var enable: Boolean
+) : AbstractTask() {
+
+    override suspend fun execute() {
+        log.info("Valorant皮肤库数据刷新任务,开始")
+        runCatching {
+            ValorantThirdPartyPersistenceDataInitiator.init()
+        }.onFailure {
+            log.warning("")
+        }
+        log.info("Valorant皮肤库数据刷新任务,结束")
+    }
+
+}
+
+

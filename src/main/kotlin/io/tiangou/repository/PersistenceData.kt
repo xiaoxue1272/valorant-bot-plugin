@@ -150,9 +150,9 @@ data class Theme(
 
 }
 
-object ValorantThirdPartyDataInitializeSaver {
+object ValorantThirdPartyPersistenceDataInitiator {
 
-    private val logger: MiraiLogger = MiraiLogger.Factory.create(ValorantThirdPartyDataInitializeSaver::class)
+    private val logger: MiraiLogger = MiraiLogger.Factory.create(ValorantThirdPartyPersistenceDataInitiator::class)
 
     suspend fun init() {
         withContext(Dispatchers.IO) {

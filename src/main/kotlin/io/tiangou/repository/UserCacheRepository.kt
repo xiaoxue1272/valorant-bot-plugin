@@ -9,7 +9,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.serializer
-import net.mamoe.mirai.console.util.cast
+import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentHashMap
 
 
@@ -19,15 +19,27 @@ data class UserCache(
     var isRiotAccountLogin: Boolean = false,
     var subscribeDailyStore: Boolean = false,
     @Transient val logicSelector: LogicSelector = LogicSelector(),
-    @Transient val cacheAnythingMap: MutableMap<Any, Any> = mutableMapOf(),
 ) {
 
+    @Transient val logicTransferData: LogicTransferData = LogicTransferData()
 
-    inline fun <reified T : Any> removeCache(key: Any): T? = cacheAnythingMap.remove(key)?.cast<T>()
+    data class LogicTransferData(
+        var account: WeakReference<String>? = null,
+        var password: WeakReference<String>? = null,
+        var needLoginVerify: WeakReference<Boolean>? = null
+    ) {
 
-    fun setCache(key: Any, value: Any) = cacheAnythingMap.put(key, value)
+        fun clear() {
+            account?.clear()
+            password?.clear()
+            needLoginVerify?.clear()
+        }
+
+    }
 
 }
+
+inline fun <reified T> WeakReference<T>.getAndClear() = get().apply { clear() }
 
 object UserCacheRepository :
     AutoFlushStorage<MutableMap<Long, UserCache>>(JsonStorage("user-cache", StoragePathEnum.DATA_PATH, serializer())) {

@@ -6,8 +6,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.KSerializer
 import net.mamoe.mirai.console.util.cast
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import net.mamoe.mirai.utils.MiraiLogger
 import java.io.File
 import java.nio.file.Path
 import kotlin.time.DurationUnit
@@ -51,7 +50,7 @@ class StringStorage(
     storagePath: StoragePathEnum
 ) : Storage<String> {
 
-    private val log: Logger = LoggerFactory.getLogger(this::class.java)
+    private val log: MiraiLogger = MiraiLogger.Factory.create(this::class)
 
     override val storeFile: File =
         storagePath.path.resolve(fileName).toFile()
@@ -60,7 +59,7 @@ class StringStorage(
         log.info("storage file path:${storeFile.absolutePath}")
         storeFile.createNewFile()
         if (!storeFile.isFile) {
-            log.warn("${storeFile.name} is not a file!")
+            log.warning("${storeFile.name} is not a file!")
         }
     }
 
@@ -116,7 +115,7 @@ abstract class AutoFlushStorage<T : Any>(
 
         private val autoFlushList: MutableList<AutoFlushStorage<Any>> = mutableListOf()
 
-        private val log: Logger = LoggerFactory.getLogger(this::class.java)
+        private val log: MiraiLogger = MiraiLogger.Factory.create(this::class)
 
         var data: Any? = null
 
@@ -127,10 +126,10 @@ abstract class AutoFlushStorage<T : Any>(
                     autoFlushList.forEach { autoFlushStore ->
                         autoFlushStore.apply {
                             runCatching {
-                                log.info("auto flush data to file, path: ${storeFile.absolutePath}")
+                                log.debug("auto flush data to file, path: ${storeFile.absolutePath}")
                                 store(data)
                             }.onFailure {
-                                log.warn("auto flush error", it)
+                                log.warning("auto flush error", it)
                             }
                         }
                     }
