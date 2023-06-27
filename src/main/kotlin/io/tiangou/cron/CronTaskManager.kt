@@ -67,10 +67,6 @@ sealed class AbstractTask : CoroutineScope {
     @Transient
     private lateinit var job: Job
 
-    init {
-        coroutineContext[Job]?.invokeOnCompletion { if (it != null && enable) onDisable() }
-    }
-
     fun enable(enable: Boolean) {
         synchronized(this) {
             if (this.enable) {

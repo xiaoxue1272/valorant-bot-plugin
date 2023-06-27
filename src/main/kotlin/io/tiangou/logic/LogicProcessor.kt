@@ -93,6 +93,8 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
             when (authResponse.type) {
                 AuthResponse.RESPONSE -> {
                     flushAccessToken(authResponse.response!!.parameters.uri)
+                    flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
+                    RiotApi.PlayerInfo.execute().sub.also { puuid.set(it) }
                     event.reply("登录成功")
                     userCache.isRiotAccountLogin = true
                 }
@@ -121,6 +123,8 @@ object VerifyRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
                 when (authResponse.type) {
                     AuthResponse.RESPONSE -> {
                         flushAccessToken(authResponse.response!!.parameters.uri)
+                        flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
+                        RiotApi.PlayerInfo.execute().sub.also { puuid.set(it) }
                         event.reply("登录成功")
                         userCache.isRiotAccountLogin = true
                     }
@@ -137,20 +141,7 @@ object VerifyRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
 object AskLocationAreaLogicProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
-        event.reply(
-            MessageChainBuilder()
-                .append("请输入你想要设置的地区\n")
-                .append("\n")
-                .append("亚洲\n")
-                .append("北美\n")
-                .append("巴西\n")
-                .append("拉丁美洲\n")
-                .append("韩国\n")
-                .append("欧洲\n")
-                .append("\n")
-                .append("请输入正确的地区值")
-                .build()
-        )
+        event.reply(ASK_LOCATION_AREA_MESSAGE)
         return false
     }
 }
@@ -168,19 +159,6 @@ object SaveLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
             }
         }
         throw ValorantRuntimeException("未找到输入的地区")
-    }
-
-    enum class ServerLocationEnum(
-        val value: String,
-        val shard: String,
-        val region: String
-    ) {
-        AP("亚洲", "ap", "ap"),
-        NA("北美", "na", "na"),
-        BR("巴西", "na", "br"),
-        LATAM("拉丁美洲", "na", "latam"),
-        EU("欧洲", "eu", "eu"),
-        ;
     }
 
 }
