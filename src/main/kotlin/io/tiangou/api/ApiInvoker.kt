@@ -17,7 +17,7 @@ internal interface ApiInvoker<in T : Any, out R : Any> {
         requestBody: T? = null,
     ): R = with(this) {
         val request = prepareRequest(requestBody)
-        prepareResponse(tryRequest(request, 3))
+        prepareResponse(tryRequest(request, 2))
     }
 }
 

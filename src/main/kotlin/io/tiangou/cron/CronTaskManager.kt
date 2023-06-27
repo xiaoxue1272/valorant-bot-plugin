@@ -45,14 +45,6 @@ object CronTaskManager : AutoSavePluginConfig("cron-task") {
         }
     }
 
-    fun <T : AbstractTask> enableTask(task: T) {
-        task.onEnable()
-    }
-
-    fun <T : AbstractTask> disableTask(task: T) {
-        task.onDisable()
-    }
-
 }
 
 @Serializable
@@ -66,7 +58,8 @@ sealed class AbstractTask : CoroutineScope {
     abstract var enable: Boolean
 
     @Transient
-    final override val coroutineContext: CoroutineContext = Global.coroutineScope.coroutineContext + CoroutineName("Task :${this::class::simpleName}")
+    final override val coroutineContext: CoroutineContext =
+        Global.coroutineScope.coroutineContext + CoroutineName("Task :${this::class::simpleName}")
 
     @Transient
     private lateinit var cronPattern: CronPattern
@@ -74,8 +67,16 @@ sealed class AbstractTask : CoroutineScope {
     @Transient
     private lateinit var job: Job
 
-    init {
-       coroutineContext[Job]?.invokeOnCompletion { if (it != null) onDisable() }
+    fun enable(enable: Boolean) {
+        synchronized(this) {
+            if (this.enable) {
+                onDisable()
+            }
+            this.enable = enable
+            if (enable) {
+                onEnable()
+            }
+        }
     }
 
     fun onEnable() {
@@ -86,6 +87,7 @@ sealed class AbstractTask : CoroutineScope {
                     CronPatternUtil.nextDateAfter(cronPattern, Date(), true).time - getTimeMillis()
                 delay(waitOnExecuteTimeMillis)
                 runCatching { execute() }
+                delay(1000)
             }
         }
         log.info("已启用任务 [${this::class.simpleName}]")
@@ -102,31 +104,35 @@ sealed class AbstractTask : CoroutineScope {
 
 @Serializable
 class SubscribeDailyStore(
-    override var cron: String,
-    override var enable: Boolean
-) : AbstractTask() {
+    override var cron: String = "0 10 08 * * ? *",
+    override var enable: Boolean = true
+): AbstractTask() {
 
     override suspend fun execute() {
         log.info("每日商店定时推送任务,开始")
         Bot.instances.forEach { bot ->
             UserCacheRepository.getAllUserCache().forEach { entry ->
                 if (entry.value.subscribeDailyStore) {
-                    bot.let {
-                        it.getFriend(entry.key) ?: it.getStranger(entry.key)
-                    }?.runCatching {
-                        val dailyStore = entry.value.riotClientData.actions {
-                            DailyStoreImageGenerator.generate(this)
-                        }
-                        var uploadImage = uploadImage(dailyStore.toExternalResource().toAutoCloseable())
-                        repeat(2) {
-                            if (!uploadImage.isUploaded(bot)) {
-                                uploadImage = uploadImage(dailyStore.toExternalResource().toAutoCloseable())
+                    val user = bot.getFriend(entry.key) ?: bot.getStranger(entry.key)
+                    if (user == null) {
+                        log.info("QQ:[${entry.key}],未在机器人联系列表中找到用户,请添加机器人为好友")
+                    } else {
+                        user.runCatching {
+                            val dailyStore = entry.value.riotClientData.actions {
+                                DailyStoreImageGenerator.generate(this)
                             }
+                            var uploadImage = uploadImage(dailyStore.toExternalResource().toAutoCloseable())
+                            repeat(2) {
+                                if (!uploadImage.isUploaded(bot)) {
+                                    uploadImage = uploadImage(dailyStore.toExternalResource().toAutoCloseable())
+                                }
+                            }
+                            sendMessage(uploadImage)
+                        }.onFailure {
+                            log.warning("QQ:[${entry.key}],推送每日商店内容异常,异常信息:", it)
                         }
-                        sendMessage(uploadImage)
-                    }?.onFailure {
-                        log.warning("QQ:[${entry.key}],推送每日商店内容异常,异常信息:${it.message}")
                     }
+
                 }
             }
         }
@@ -146,7 +152,7 @@ class ValorantPersistenceDataFlush(
         runCatching {
             ValorantThirdPartyPersistenceDataInitiator.init()
         }.onFailure {
-            log.warning("")
+            log.warning("Valorant皮肤库数据刷新任务,执行中发生异常,异常信息:", it)
         }
         log.info("Valorant皮肤库数据刷新任务,结束")
     }

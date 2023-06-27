@@ -31,38 +31,35 @@ object EventHandler : SimpleListenerHost() {
         if (!checkMessageAllow()) {
             return
         }
-        val userCache = UserCacheRepository[sender.id]
-        userCache.logicSelector.apply {
-            if (!isStatusNormal()) {
-                clear()
-            }
-            if (processJob != null && !processJob!!.isCancelled) {
-                reply("正在执行中,请稍候")
-                return
-            }
-            processJob = launch {
-                runCatching {
-                    while (true) {
-                        if (!loadLogic(this@onMessage.message.toText()).process(this@onMessage, userCache)) {
-                            break
+        UserCacheRepository[sender.id].apply {
+            logicSelector.run {
+                if (processJob != null && !processJob!!.isCancelled) {
+                    reply("正在执行中,请稍候")
+                    return
+                }
+                processJob = launch {
+                    runCatching {
+                        while (true) {
+                            val logicProcessor = loadLogic(this@onMessage.message.toText())
+                            if (logicProcessor == null) {
+                                reply("未找到对应操作,请检查输入是否正确")
+                                break
+                            }
+                            if (!logicProcessor.process(this@onMessage, this@apply)) break
+                        }
+                    }.onFailure {
+                        isRunningError = true
+                        if (it is ValorantRuntimeException) {
+                            log.warning("qq user:[${sender.id}]", it)
+                            reply("${it.message}")
+                        } else {
+                            log.warning("processing valo bot logic throw throwable", it)
+                            reply("error: ${it.message}")
                         }
                     }
-                }.onFailure {
-                    if (it is ValorantRuntimeException) {
-                        log.warning("qq user:[${sender.id}]", it)
-                        reply("${it.message}")
-                    } else {
-                        log.warning("processing valo bot logic throw throwable", it)
-                        reply("error: ${it.message}")
-                    }
-                    isRunningError = true
+                    autoClean()
                 }
             }
-            processJob!!.invokeOnCompletion {
-                processJob = null
-                userCache.logicTransferData.clear()
-            }
-            processJob!!.join()
         }
     }
 

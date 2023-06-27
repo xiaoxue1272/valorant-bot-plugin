@@ -12,19 +12,16 @@ import io.tiangou.api.data.MultiFactorAuthRequest
 import io.tiangou.logic.utils.DailyStoreImageGenerator
 import io.tiangou.other.http.actions
 import io.tiangou.repository.UserCache
-import io.tiangou.repository.getAndClear
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import net.mamoe.mirai.event.events.MessageEvent
 import net.mamoe.mirai.message.data.Image.Key.isUploaded
 import net.mamoe.mirai.message.data.MessageChainBuilder
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
-import java.lang.ref.WeakReference
 
 @Serializable
 sealed interface LogicProcessor<T : MessageEvent> {
     suspend fun process(event: MessageEvent, userCache: UserCache): Boolean
-
 }
 
 @Serializable
@@ -53,7 +50,7 @@ object AskRiotUsernameLogicProcessor : LogicProcessor<MessageEvent> {
 object SaveRiotUsernameLogicProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
-        userCache.logicTransferData.account = WeakReference(event.message.toText())
+        userCache.logicTransferData.account = event.message.toText()
         return true
     }
 }
@@ -71,7 +68,7 @@ object AskRiotPasswordLogicProcessor : LogicProcessor<MessageEvent> {
 object SaveRiotPasswordLogicProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
-        userCache.logicTransferData.password = WeakReference(event.message.toText())
+        userCache.logicTransferData.password = event.message.toText()
         return true
     }
 
@@ -89,20 +86,21 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
             val authResponse: AuthResponse =
                 RiotApi.Auth.execute(
                     AuthRequest(
-                        userCache.logicTransferData.account!!.getAndClear(),
-                        userCache.logicTransferData.password!!.getAndClear()
+                        userCache.logicTransferData.account!!,
+                        userCache.logicTransferData.password!!
                     )
                 )
             when (authResponse.type) {
                 AuthResponse.RESPONSE -> {
                     flushAccessToken(authResponse.response!!.parameters.uri)
                     flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
+                    RiotApi.PlayerInfo.execute().sub.also { puuid.set(it) }
                     event.reply("登录成功")
                     userCache.isRiotAccountLogin = true
                 }
 
                 AuthResponse.MULTI_FACTOR -> {
-                    userCache.logicTransferData.needLoginVerify = WeakReference(true)
+                    userCache.logicTransferData.needLoginVerify = true
                     event.reply("请输入二步验证码")
                     return@actions false
                 }
@@ -118,7 +116,7 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
 object VerifyRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
-        if (userCache.logicTransferData.needLoginVerify?.getAndClear() == true) {
+        if (userCache.logicTransferData.needLoginVerify == true) {
             event.reply("请稍等,正在验证")
             userCache.riotClientData.actions {
                 val authResponse = RiotApi.MultiFactorAuth.execute(MultiFactorAuthRequest(event.message.toText()))
@@ -126,9 +124,11 @@ object VerifyRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
                     AuthResponse.RESPONSE -> {
                         flushAccessToken(authResponse.response!!.parameters.uri)
                         flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
+                        RiotApi.PlayerInfo.execute().sub.also { puuid.set(it) }
                         event.reply("登录成功")
                         userCache.isRiotAccountLogin = true
                     }
+
                     else -> event.reply("登录失败,请重新登录")
                 }
             }
@@ -141,20 +141,7 @@ object VerifyRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
 object AskLocationAreaLogicProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
-        event.reply(
-            MessageChainBuilder()
-                .append("请输入你想要设置的地区\n")
-                .append("\n")
-                .append("亚洲\n")
-                .append("北美\n")
-                .append("巴西\n")
-                .append("拉丁美洲\n")
-                .append("韩国\n")
-                .append("欧洲\n")
-                .append("\n")
-                .append("请输入正确的地区值")
-                .build()
-        )
+        event.reply(ASK_LOCATION_AREA_MESSAGE)
         return false
     }
 }
@@ -172,19 +159,6 @@ object SaveLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
             }
         }
         throw ValorantRuntimeException("未找到输入的地区")
-    }
-
-    enum class ServerLocationEnum(
-        val value: String,
-        val shard: String,
-        val region: String
-    ) {
-        AP("亚洲", "ap", "ap"),
-        NA("北美", "na", "na"),
-        BR("巴西", "na", "br"),
-        LATAM("拉丁美洲", "na", "latam"),
-        EU("欧洲", "eu", "eu"),
-        ;
     }
 
 }
@@ -228,8 +202,6 @@ object QueryPlayerDailyStoreItemProcessor : LogicProcessor<MessageEvent> {
         return false
     }
 }
-
-
 
 @Serializable
 object SubscribeTaskDailyStore : LogicProcessor<MessageEvent> {

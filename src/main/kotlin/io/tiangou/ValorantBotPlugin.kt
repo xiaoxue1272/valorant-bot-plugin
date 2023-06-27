@@ -21,7 +21,7 @@ fun MessageChain.toText() =
 
 object ValorantBotPlugin : KotlinPlugin(
     description = JvmPluginDescription(
-        id = "io.tiangou.valo-bot-plugin",
+        id = "io.tiangou.valorant-bot-plugin",
         name = "valorant-bot-plugin",
         version = "0.4.1-pre"
     )
@@ -33,8 +33,8 @@ object ValorantBotPlugin : KotlinPlugin(
     override fun onEnable() {
         CronTaskManager.reload()
         runBlocking { ValorantThirdPartyPersistenceDataInitiator.init() }
-        CronTaskManager.start()
         EventHandler.registerTo(GlobalEventChannel)
+        CronTaskManager.start()
         logger.info("valorant bot plugin enabled")
     }
 

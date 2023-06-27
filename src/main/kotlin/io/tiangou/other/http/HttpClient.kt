@@ -173,6 +173,7 @@ internal fun HttpStatusCode.isRedirect(): Boolean = when (value) {
     HttpStatusCode.TemporaryRedirect.value,
     HttpStatusCode.PermanentRedirect.value,
     HttpStatusCode.SeeOther.value -> true
+
     else -> false
 }
 
@@ -190,4 +191,5 @@ open class ClientData(
 
 }
 
-suspend inline fun <reified T : ClientData, reified R> T.actions(crossinline block: suspend T.() -> R) = withContext(this) { block() }
+suspend inline fun <reified T : ClientData, reified R> T.actions(crossinline block: suspend T.() -> R) =
+    withContext(this) { block() }

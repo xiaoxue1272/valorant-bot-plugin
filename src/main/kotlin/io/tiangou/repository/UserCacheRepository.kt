@@ -9,7 +9,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.serializer
-import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentHashMap
 
 
@@ -21,25 +20,30 @@ data class UserCache(
     @Transient val logicSelector: LogicSelector = LogicSelector(),
 ) {
 
-    @Transient val logicTransferData: LogicTransferData = LogicTransferData()
+    @Transient
+    val logicTransferData: LogicTransferData = LogicTransferData()
+
+    fun autoClean() =
+        logicSelector.takeIf { !it.isStatusNormal() }?.apply {
+            logicSelector.clean()
+            logicTransferData.clean()
+        }
 
     data class LogicTransferData(
-        var account: WeakReference<String>? = null,
-        var password: WeakReference<String>? = null,
-        var needLoginVerify: WeakReference<Boolean>? = null
+        var account: String? = null,
+        var password: String? = null,
+        var needLoginVerify: Boolean? = null
     ) {
 
-        fun clear() {
-            account?.clear()
-            password?.clear()
-            needLoginVerify?.clear()
+        fun clean() {
+            account = null
+            password = null
+            needLoginVerify = null
         }
 
     }
 
 }
-
-inline fun <reified T> WeakReference<T>.getAndClear() = get().apply { clear() }
 
 object UserCacheRepository :
     AutoFlushStorage<MutableMap<Long, UserCache>>(JsonStorage("user-cache", StoragePathEnum.DATA_PATH, serializer())) {

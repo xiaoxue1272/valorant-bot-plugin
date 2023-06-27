@@ -21,7 +21,7 @@ sealed class RiotApi<in T : Any, out R : Any> : ApiInvoker<T, R> {
         val riotClientData = coroutineContext[ClientData]?.safeCast<RiotClientData>()
         val request = prepareRequest(requestBody)
         riotClientData?.onRequest(request)
-        val response = tryRequest(request, 3) {
+        val response = tryRequest(request, 1) {
             riotClientData?.onResponse(this)
         }
         return prepareResponse(response)

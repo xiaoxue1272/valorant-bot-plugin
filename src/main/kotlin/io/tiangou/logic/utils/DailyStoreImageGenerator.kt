@@ -37,10 +37,11 @@ object DailyStoreImageGenerator {
 
     private suspend fun RiotClientData.queryDailyStoreSkinLevelUuidList(): List<String> {
         try {
-            flushAccessToken(RiotApi.CookieReAuth.execute())
-            flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
-            val puuid = puuid.get() ?: RiotApi.PlayerInfo.execute().sub.also { puuid.set(it) }
-            return RiotApi.Storefront.execute(StorefrontRequest(shard!!, puuid)).skinsPanelLayout.singleItemOffers
+            if (oldestCookieTimestamp.get() <= System.currentTimeMillis()) {
+                flushAccessToken(RiotApi.CookieReAuth.execute())
+                flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
+            }
+            return RiotApi.Storefront.execute(StorefrontRequest(shard!!, puuid.get()!!)).skinsPanelLayout.singleItemOffers
         } catch (e: ApiException) {
             throw ValorantRuntimeException("错误信息:${e.message},可能是账号登录过期,请重新登录账号后重试")
         }
