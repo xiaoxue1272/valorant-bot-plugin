@@ -50,6 +50,7 @@ class LogicSelector {
         if (isRunningError) {
             return false
         }
+        // TODO : 逻辑块等待超时时取消执行(默认5分钟)
         return logicTimestamp != null && 5 * 60 * 1000 > (System.currentTimeMillis() - logicTimestamp!!)
     }
 
