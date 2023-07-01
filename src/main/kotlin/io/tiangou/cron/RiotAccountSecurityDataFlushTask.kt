@@ -1,0 +1,29 @@
+package io.tiangou.cron
+
+import io.tiangou.api.RiotApi
+import io.tiangou.other.http.actions
+import io.tiangou.repository.UserCacheRepository
+import kotlinx.serialization.Serializable
+
+@Serializable
+class RiotAccountSecurityDataFlushTask(
+    override var cron: String,
+    override var isEnable: Boolean
+) : Task() {
+
+    override suspend fun execute() {
+        log.info("Valorant安全令牌刷新任务,开始")
+        UserCacheRepository.getAllUserCache().forEach { entry ->
+            entry.value.takeIf { it.isRiotAccountLogin }?.riotClientData?.actions {
+                runCatching {
+                    flushAccessToken(RiotApi.CookieReAuth.execute())
+                    flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
+                }.onFailure {
+                    log.warning("Valorant安全令牌刷新任务,QQ:[${entry.key}],异常信息:", it)
+                }
+            }
+        }
+        log.info("Valorant安全令牌刷新任务,结束")
+    }
+
+}

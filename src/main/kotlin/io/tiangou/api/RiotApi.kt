@@ -23,6 +23,7 @@ sealed class RiotApi<in T : Any, out R : Any> : ApiInvoker<T, R> {
         riotClientData?.onRequest(request)
         val response = tryRequest(request, 1) {
             riotClientData?.onResponse(this)
+            riotClientData?.onRequest(request)
         }
         return prepareResponse(response)
     }
@@ -141,9 +142,9 @@ sealed class RiotApi<in T : Any, out R : Any> : ApiInvoker<T, R> {
 
 @Serializable
 class RiotClientData(
-    val authToken: @Serializable(with = AtomicReferenceSerializer::class) AtomicReference<String?> = AtomicReference(),
-    val xRiotEntitlementsJwt: @Serializable(with = AtomicReferenceSerializer::class) AtomicReference<String?> = AtomicReference(),
-    val puuid: @Serializable(with = AtomicReferenceSerializer::class) AtomicReference<String?> = AtomicReference(),
+    private val authToken: @Serializable(AtomicReferenceSerializer::class) AtomicReference<String?> = AtomicReference(),
+    private val xRiotEntitlementsJwt: @Serializable(AtomicReferenceSerializer::class) AtomicReference<String?> = AtomicReference(),
+    var puuid: String? = null,
     var region: String? = null,
     var shard: String? = null,
 ) : ClientData() {
@@ -168,11 +169,11 @@ class RiotClientData(
 
     fun onRequest(request: HttpRequestBuilder) {
         if (request.host.endsWith("auth.riotgames.com")) {
-            request.headers.append(HttpHeaders.Authorization, "Bearer $authToken")
+            request.headers[HttpHeaders.Authorization] = "Bearer $authToken"
         }
         if (request.host.endsWith(".a.pvp.net")) {
-            request.headers.append(HttpHeaders.Authorization, "Bearer $authToken")
-            request.headers.append("X-Riot-Entitlements-JWT", "$xRiotEntitlementsJwt")
+            request.headers[HttpHeaders.Authorization] = "Bearer $authToken"
+            request.headers["X-Riot-Entitlements-JWT"] = "$xRiotEntitlementsJwt"
         }
     }
 

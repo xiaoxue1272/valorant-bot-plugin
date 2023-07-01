@@ -104,7 +104,8 @@ data class StoreFrontResponse(
     @SerialName("FeaturedBundle") val featuredBundle: FeaturedBundle,
     @SerialName("SkinsPanelLayout") val skinsPanelLayout: SkinsPanelLayout,
     @SerialName("UpgradeCurrencyStore") val upgradeCurrencyStore: UpgradeCurrencyStore,
-    @SerialName("BonusStore") val bonusStore: BonusStore? = null
+    @SerialName("AccessoryStore") val accessoryStore: AccessoryStore,
+    @SerialName("BonusStore") val bonusStore: BonusStore? = null,
 ) {
 
     @Serializable
@@ -159,16 +160,7 @@ data class StoreFrontResponse(
             @SerialName("OfferID") val offerID: String,
             @SerialName("Rewards") val rewards: List<Reward>,
             @SerialName("StartDate") val startDate: String
-        ) {
-
-            @Serializable
-            data class Reward(
-                @SerialName("ItemID") val itemID: String,
-                @SerialName("ItemTypeID") val itemTypeID: String,
-                @SerialName("Quantity") val quantity: Int
-            )
-
-        }
+        )
 
     }
 
@@ -182,27 +174,7 @@ data class StoreFrontResponse(
             @SerialName("Offer") val offer: Offer,
             @SerialName("OfferID") val offerID: String,
             @SerialName("StorefrontItemID") val storefrontItemID: String
-        ) {
-
-            @Serializable
-            data class Offer(
-                @SerialName("Cost") val cost: Map<String, Long>,
-                @SerialName("IsDirectPurchase") val isDirectPurchase: Boolean,
-                @SerialName("OfferID") val offerID: String,
-                @SerialName("Rewards") val rewards: List<Reward>,
-                @SerialName("StartDate") val startDate: String
-            ) {
-
-                @Serializable
-                data class Reward(
-                    @SerialName("ItemID") val itemID: String,
-                    @SerialName("ItemTypeID") val itemTypeID: String,
-                    @SerialName("Quantity") val quantity: Int
-                )
-
-            }
-
-        }
+        )
 
     }
 
@@ -219,29 +191,39 @@ data class StoreFrontResponse(
             @SerialName("DiscountPercent") val discountPercent: Double,
             @SerialName("IsSeen") val isSeen: Boolean,
             @SerialName("Offer") val offer: Offer
-        ) {
-
-            @Serializable
-            data class Offer(
-                @SerialName("Cost") val cost: Map<String, Long>,
-                @SerialName("IsDirectPurchase") val isDirectPurchase: Boolean,
-                @SerialName("OfferID") val offerID: String,
-                @SerialName("Rewards") val rewards: List<Reward>,
-                @SerialName("StartDate") val startDate: String
-            ) {
-
-                @Serializable
-                data class Reward(
-                    @SerialName("ItemID") val itemID: String,
-                    @SerialName("ItemTypeID") val itemTypeID: String,
-                    @SerialName("Quantity") val quantity: Int
-                )
-
-            }
-
-        }
+        )
 
     }
+
+    @Serializable
+    data class AccessoryStore(
+        @SerialName("AccessoryStoreOffers") val accessoryStoreOffers: List<AccessoryStoreOffer>,
+        @SerialName("AccessoryStoreRemainingDurationInSeconds") val accessoryStoreRemainingDurationInSeconds: Int,
+        @SerialName("StorefrontID") val storefrontID: String
+    ) {
+        @Serializable
+        data class AccessoryStoreOffer(
+            @SerialName("ContractID") val contractID: String,
+            @SerialName("Offer") val offer: Offer
+        )
+
+    }
+
+    @Serializable
+    data class Offer(
+        @SerialName("Cost") val cost: Map<String, Long>,
+        @SerialName("IsDirectPurchase") val isDirectPurchase: Boolean,
+        @SerialName("OfferID") val offerID: String,
+        @SerialName("Rewards") val rewards: List<Reward>,
+        @SerialName("StartDate") val startDate: String
+    )
+
+    @Serializable
+    data class Reward(
+        @SerialName("ItemID") val itemID: String,
+        @SerialName("ItemTypeID") val itemTypeID: String,
+        @SerialName("Quantity") val quantity: Int
+    )
 
 }
 

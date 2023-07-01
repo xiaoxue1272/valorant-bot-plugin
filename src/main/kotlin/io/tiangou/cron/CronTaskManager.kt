@@ -4,20 +4,13 @@ import cn.hutool.cron.pattern.CronPattern
 import cn.hutool.cron.pattern.CronPatternUtil
 import io.ktor.util.date.*
 import io.tiangou.Global
-import io.tiangou.logic.utils.DailyStoreImageGenerator
-import io.tiangou.other.http.actions
-import io.tiangou.repository.UserCacheRepository
-import io.tiangou.repository.ValorantThirdPartyPersistenceDataInitiator
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import net.mamoe.mirai.Bot
 import net.mamoe.mirai.console.data.AutoSavePluginConfig
 import net.mamoe.mirai.console.data.ValueDescription
 import net.mamoe.mirai.console.data.ValueName
 import net.mamoe.mirai.console.data.value
-import net.mamoe.mirai.message.data.Image.Key.isUploaded
-import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import net.mamoe.mirai.utils.MiraiLogger
 import java.util.*
 import kotlin.coroutines.CoroutineContext
@@ -26,36 +19,37 @@ object CronTaskManager : AutoSavePluginConfig("cron-task") {
 
     @ValueName("taskList")
     @ValueDescription("定时任务集合")
-    val taskList: List<AbstractTask> by value(
+    val taskList: List<Task> by value(
         listOf(
-            SubscribeDailyStore("0 10 08 * * ? *", true),
-            ValorantPersistenceDataFlush("0 0 9 ? * 7 *", true)
+            DailyStorePushTask("0 10 08 * * ? *", true),
+            PersistenceDataFlushTask("0 0 9 ? * 7 *", true),
+            RiotAccountSecurityDataFlushTask("0 30 4,12,20 * * ? *", true)
         )
     )
 
     fun start() {
         taskList.forEach {
-            it.takeIf { it.enable }?.onEnable()
+            it.takeIf { it.isEnable }?.enable()
         }
     }
 
     fun stop() {
         taskList.forEach {
-            it.takeIf { it.enable }?.onDisable()
+            it.takeIf { it.isEnable }?.disable()
         }
     }
 
 }
 
 @Serializable
-sealed class AbstractTask : CoroutineScope {
+sealed class Task : CoroutineScope {
 
     @Transient
     val log: MiraiLogger = MiraiLogger.Factory.create(this::class)
 
     abstract var cron: String
 
-    abstract var enable: Boolean
+    abstract var isEnable: Boolean
 
     @Transient
     final override val coroutineContext: CoroutineContext =
@@ -65,98 +59,40 @@ sealed class AbstractTask : CoroutineScope {
     private lateinit var cronPattern: CronPattern
 
     @Transient
-    private lateinit var job: Job
+    internal var job: Job? = null
 
-    fun enable(enable: Boolean) {
-        synchronized(this) {
-            if (this.enable) {
-                onDisable()
-            }
-            this.enable = enable
-            if (enable) {
-                onEnable()
-            }
-        }
-    }
-
-    fun onEnable() {
+    open fun enable() {
         cronPattern = CronPattern.of(cron)
         job = launch {
             while (true) {
+                val nowTimeMillis = getTimeMillis()
                 val waitOnExecuteTimeMillis =
-                    CronPatternUtil.nextDateAfter(cronPattern, Date(), true).time - getTimeMillis()
+                    CronPatternUtil.nextDateAfter(cronPattern, Date(), true).time - nowTimeMillis
                 delay(waitOnExecuteTimeMillis)
-                runCatching { execute() }
-                delay(1000)
+                val startTimeMillis = getTimeMillis()
+                executeRunCaching()
+                val remainingTime = getTimeMillis() - startTimeMillis
+                if (remainingTime < 1000) {
+                    delay(1000 - remainingTime)
+                }
             }
         }
         log.info("已启用任务 [${this::class.simpleName}]")
     }
 
-    fun onDisable() {
-        runCatching { job.cancel("已禁用任务 [${this::class.simpleName}] ") }
+    open fun disable() {
+        runCatching { job?.cancel("已禁用任务 [${this::class.simpleName}] ") }
         log.info("已禁用任务 [${this::class.simpleName}]")
     }
 
+
     abstract suspend fun execute()
 
-}
+    suspend fun executeRunCaching() =
+        runCatching { execute() }.onFailure { log.warning("Threw an exception when task was execute", it) }
 
-@Serializable
-class SubscribeDailyStore(
-    override var cron: String = "0 10 08 * * ? *",
-    override var enable: Boolean = true
-): AbstractTask() {
-
-    override suspend fun execute() {
-        log.info("每日商店定时推送任务,开始")
-        Bot.instances.forEach { bot ->
-            UserCacheRepository.getAllUserCache().forEach { entry ->
-                if (entry.value.subscribeDailyStore) {
-                    val user = bot.getFriend(entry.key) ?: bot.getStranger(entry.key)
-                    if (user == null) {
-                        log.info("QQ:[${entry.key}],未在机器人联系列表中找到用户,请添加机器人为好友")
-                    } else {
-                        user.runCatching {
-                            val dailyStore = entry.value.riotClientData.actions {
-                                DailyStoreImageGenerator.generate(this)
-                            }
-                            var uploadImage = uploadImage(dailyStore.toExternalResource().toAutoCloseable())
-                            repeat(2) {
-                                if (!uploadImage.isUploaded(bot)) {
-                                    uploadImage = uploadImage(dailyStore.toExternalResource().toAutoCloseable())
-                                }
-                            }
-                            sendMessage(uploadImage)
-                        }.onFailure {
-                            log.warning("QQ:[${entry.key}],推送每日商店内容异常,异常信息:", it)
-                        }
-                    }
-
-                }
-            }
-        }
-        log.info("每日商店定时推送任务,结束")
-    }
 
 }
 
-@Serializable
-class ValorantPersistenceDataFlush(
-    override var cron: String,
-    override var enable: Boolean
-) : AbstractTask() {
-
-    override suspend fun execute() {
-        log.info("Valorant皮肤库数据刷新任务,开始")
-        runCatching {
-            ValorantThirdPartyPersistenceDataInitiator.init()
-        }.onFailure {
-            log.warning("Valorant皮肤库数据刷新任务,执行中发生异常,异常信息:", it)
-        }
-        log.info("Valorant皮肤库数据刷新任务,结束")
-    }
-
-}
 
 

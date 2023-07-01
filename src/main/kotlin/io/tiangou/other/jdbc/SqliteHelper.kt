@@ -18,7 +18,7 @@ internal object SqliteHelper {
 
     fun execute(sql: String) = connection.createStatement().execute(sql)
 
-    fun <T> executeQueryOne(sql: String, block: (ResultSet) -> T): T =
+    fun <T> executeQuery(sql: String, block: (ResultSet) -> T): T =
         block(connection.createStatement().executeQuery(sql))
 
 }

@@ -83,17 +83,6 @@ internal fun Canvas.writeBackgroundColor(surface: Surface, rgbaString: String, a
     })
 }
 
-internal fun rgbaConvert(str: String): Int {
-    str.takeIf { it.isNotEmpty() } ?: throw IllegalArgumentException("str is illegal")
-    val colorString = str.removePrefix("#")
-    return Color.makeARGB(
-        Integer.parseInt(colorString.substring(6, 8), 16),
-        Integer.parseInt(colorString.substring(0, 2), 16),
-        Integer.parseInt(colorString.substring(2, 4), 16),
-        Integer.parseInt(colorString.substring(4, 6), 16)
-    )
-}
-
 internal fun Surface.Companion.makeByImageAndProportion(bytes: ByteArray, wp: Int, hp: Int): Surface =
     makeByImageAndProportion(Image.makeFromEncoded(bytes), wp, hp)
 
@@ -110,5 +99,27 @@ internal fun Surface.Companion.makeByImageAndProportion(image: Image, wp: Int, h
         } else {
             makeRasterN32Premul(image.width, image.height)
         }
+    }
+}
+
+internal fun rgbaConvert(str: String): Int {
+    str.takeIf { it.isNotEmpty() } ?: throw IllegalArgumentException("str is empty")
+    val colorString = str.removePrefix("#")
+
+    return when (colorString.length) {
+        6 -> Color.makeRGB(
+            Integer.parseInt(colorString.substring(0, 2), 16),
+            Integer.parseInt(colorString.substring(2, 4), 16),
+            Integer.parseInt(colorString.substring(4, 6), 16)
+        )
+
+        8 -> Color.makeARGB(
+            Integer.parseInt(colorString.substring(6, 8), 16),
+            Integer.parseInt(colorString.substring(0, 2), 16),
+            Integer.parseInt(colorString.substring(2, 4), 16),
+            Integer.parseInt(colorString.substring(4, 6), 16)
+        )
+
+        else -> throw IllegalArgumentException("str is not RGB or RGBA format")
     }
 }

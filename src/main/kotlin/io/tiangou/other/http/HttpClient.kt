@@ -41,6 +41,9 @@ internal val client: HttpClient = HttpClient(OkHttp) {
     Charsets {
         register(Charsets.UTF_8)
     }
+//    install(Logging) {
+//        level = LogLevel.ALL
+//    }
     install(HttpRequestRetry) {
         retryOnServerErrors(maxRetries = 3)
         exponentialDelay()
@@ -77,7 +80,6 @@ internal object UserCookiesStorage : CookiesStorage {
             cookies.let { cookies ->
                 mutex.withLock(cookies) {
                     val date = GMTDate()
-
                     if (date.timestamp >= oldestCookie.get()) cleanup(this, date.timestamp)
                     cookies.filter { it.matches(requestUrl) }
                 }
@@ -180,8 +182,8 @@ internal fun HttpStatusCode.isRedirect(): Boolean = when (value) {
 
 @Serializable
 open class ClientData(
-    val cookies: MutableList<@Serializable(with = CookieSerializer::class) Cookie> = mutableListOf(),
-    val oldestCookieTimestamp: @Serializable(with = AtomicLongSerializer::class) AtomicLong = AtomicLong()
+    val cookies: MutableList<@Serializable(CookieSerializer::class) Cookie> = mutableListOf(),
+    val oldestCookieTimestamp: @Serializable(AtomicLongSerializer::class) AtomicLong = AtomicLong()
 ) : CoroutineContext.Element {
 
     @Transient

@@ -26,13 +26,18 @@ internal suspend fun tryRequest(
     times: Int,
     failedHandle: (suspend HttpResponse.() -> Unit)? = null
 ): HttpResponse {
-    repeat(times) {
-        val httpResponse = client.request(request)
-        if (httpResponse.status.isSuccess() || httpResponse.status.isRedirect()) {
-            return httpResponse
-        }
-        if (failedHandle != null) {
-            failedHandle(httpResponse)
+    var response = client.request(request)
+    if (response.status.isSuccess() || response.status.isRedirect()) {
+        return response
+    } else {
+        repeat(times) {
+            if (failedHandle != null) {
+                failedHandle(response)
+            }
+            response = client.request(request)
+            if (response.status.isSuccess() || response.status.isRedirect()) {
+                return response
+            }
         }
     }
     throw ApiException(ApiErrorEnum.API_REQUEST_FAILED_AND_RETRY_OVER)
@@ -50,7 +55,7 @@ enum class ApiErrorEnum(
     val errorMessage: String
 ) {
 
-    API_REQUEST_FAILED_AND_RETRY_OVER("API请求失败,且重试次数已达三次,请稍候再试"),
+    API_REQUEST_FAILED_AND_RETRY_OVER("API请求失败,且重试次数已达上限,请稍候再试"),
 
     API_REQUEST_FAILED_GET_ENTITLEMENTS_TOKEN("entitlements_token获取失败"),
 

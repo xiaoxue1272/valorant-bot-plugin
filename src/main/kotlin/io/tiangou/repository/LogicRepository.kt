@@ -47,6 +47,7 @@ val DEFAULT_LOGIC_MAP: Map<String, List<LogicProcessor<MessageEvent>>> = mapOf(
     ),
     "更新每日商店推送任务状态" to listOf(
         CheckRiotStatusAndSettingProcessor,
+        CheckIsBotFriendProcessor,
         SubscribeTaskDailyStore
     )
 )

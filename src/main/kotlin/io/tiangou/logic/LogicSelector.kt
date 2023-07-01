@@ -1,57 +1,71 @@
 package io.tiangou.logic
 
+import io.ktor.util.date.*
+import io.tiangou.EventHandleConfig
+import io.tiangou.Global
+import io.tiangou.reply
 import io.tiangou.repository.LogicRepository
+import io.tiangou.repository.UserCache
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import net.mamoe.mirai.event.events.MessageEvent
+import kotlin.coroutines.CoroutineContext
 
+class LogicSelector : CoroutineScope {
 
-class LogicSelector {
+    override val coroutineContext: CoroutineContext = Global.coroutineScope.coroutineContext
 
     private var logicList: List<LogicProcessor<MessageEvent>>? = null
 
-    private var logicTimestamp: Long? = null
+    private var timeoutStamp: Long? = null
 
     var processJob: Job? = null
-        set(value) {
-            field = value
-            field?.invokeOnCompletion {
-                if (it != null) {
-                    clean()
-                }
-                processJob = null
-            }
-        }
+
+    private var timeoutCancelJob: Job? = null
 
     var isRunningError: Boolean = false
 
     private var index: Int = 0
 
     fun loadLogic(message: String): LogicProcessor<MessageEvent>? {
-        logicList = logicList ?: LogicRepository.find(message).apply { index = 0 }
-        return logicList?.run {
-            logicTimestamp = System.currentTimeMillis()
-            logicList!![index++]
+        logicList = logicList ?: LogicRepository.find(message)
+        timeoutStamp = (getTimeMillis() + EventHandleConfig.config.waitTimeoutMinutes * 60 * 1000L)
+        return logicList?.get(index++)
+    }
+
+    fun createTimeoutCancelJob(event: MessageEvent, userCache: UserCache) {
+        if (timeoutCancelJob == null && isStatusNormal()) {
+            timeoutCancelJob = launch {
+                while (true) {
+                    delay(timeoutStamp!! - getTimeMillis())
+                    if (getTimeMillis() >= timeoutStamp!!) {
+                        userCache.clean()
+                        event.reply("等待输入超时,已自动退出,请重新发起")
+                        break
+                    }
+                }
+            }
         }
     }
 
-    fun isLast(): Boolean = logicList?.run { size == index } ?: false
-
     fun clean() {
+        index = 0
         isRunningError = false
         processJob = null
         logicList = null
-        logicTimestamp = null
+        timeoutStamp = null
+        if (timeoutCancelJob != null && timeoutCancelJob!!.isActive) timeoutCancelJob!!.cancel()
+        timeoutCancelJob = null
     }
 
     fun isStatusNormal(): Boolean {
-        if (isLast()) {
+        if (logicList?.size == index) {
             return false
         }
-        if (isRunningError) {
-            return false
-        }
-        // TODO : 逻辑块等待超时时取消执行(默认5分钟)
-        return logicTimestamp != null && 5 * 60 * 1000 > (System.currentTimeMillis() - logicTimestamp!!)
+        return !isRunningError
     }
+
 
 }

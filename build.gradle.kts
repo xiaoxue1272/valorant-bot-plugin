@@ -4,7 +4,7 @@ plugins {
     val kotlinVersion = "1.8.22"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.serialization") version kotlinVersion
-    id("net.mamoe.mirai-console") version "2.14.0"
+    id("net.mamoe.mirai-console") version "2.15.0-RC"
 }
 
 enum class SkikoOSArch(
@@ -22,7 +22,7 @@ enum class SkikoOSArch(
 }
 
 group = "io.tiangou.valobot"
-version = "0.4.1"
+version = "0.5.0-pre"
 
 val kotlinVersion = "1.8.20"
 val ktorVersion = "2.2.4"
@@ -50,6 +50,7 @@ dependencies {
     implementation("io.ktor:ktor-client-okhttp:$ktorVersion")
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+//    implementation("io.ktor:ktor-client-logging:$ktorVersion")
     implementation("io.ktor:ktor-client-encoding:$ktorVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:$serializationVersion")
     implementation("org.xerial:sqlite-jdbc:3.42.0.0")

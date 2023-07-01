@@ -2,14 +2,13 @@ package io.tiangou.logic
 
 
 import io.tiangou.*
-import io.tiangou.EventHandler.getContact
-import io.tiangou.EventHandler.reply
 import io.tiangou.api.RiotApi
 import io.tiangou.api.data.AuthCookiesRequest
 import io.tiangou.api.data.AuthRequest
 import io.tiangou.api.data.AuthResponse
 import io.tiangou.api.data.MultiFactorAuthRequest
-import io.tiangou.logic.utils.DailyStoreImageGenerator
+import io.tiangou.logic.utils.GenerateImageType
+import io.tiangou.logic.utils.StoreImageHelper
 import io.tiangou.other.http.actions
 import io.tiangou.repository.UserCache
 import kotlinx.coroutines.runBlocking
@@ -94,7 +93,7 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
                 AuthResponse.RESPONSE -> {
                     flushAccessToken(authResponse.response!!.parameters.uri)
                     flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
-                    RiotApi.PlayerInfo.execute().sub.also { puuid.set(it) }
+                    puuid = RiotApi.PlayerInfo.execute().sub
                     event.reply("登录成功")
                     userCache.isRiotAccountLogin = true
                 }
@@ -124,7 +123,7 @@ object VerifyRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
                     AuthResponse.RESPONSE -> {
                         flushAccessToken(authResponse.response!!.parameters.uri)
                         flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
-                        RiotApi.PlayerInfo.execute().sub.also { puuid.set(it) }
+                        puuid = RiotApi.PlayerInfo.execute().sub
                         event.reply("登录成功")
                         userCache.isRiotAccountLogin = true
                     }
@@ -179,25 +178,35 @@ object CheckRiotStatusAndSettingProcessor : LogicProcessor<MessageEvent> {
 }
 
 @Serializable
+object CheckIsBotFriendProcessor : LogicProcessor<MessageEvent> {
+
+    override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
+        if (event.bot.getFriend(event.sender.id) == null) {
+            throw ValorantRuntimeException("请添加机器人为好友")
+        }
+        return true
+    }
+
+}
+
+@Serializable
 object QueryPlayerDailyStoreItemProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
         event.reply("正在查询每日商店,请稍等")
-        userCache.riotClientData.actions {
-            val dailyStore = DailyStoreImageGenerator.generate(this)
-            var uploadImage =
-                event.getContact().uploadImage(dailyStore.toExternalResource().toAutoCloseable())
-            repeat(2) {
-                if (!uploadImage.isUploaded(event.bot)) {
-                    uploadImage = event.getContact()
-                        .uploadImage(dailyStore.toExternalResource().toAutoCloseable())
-                }
+        val skinsPanelLayoutImage = StoreImageHelper.get(userCache, GenerateImageType.SKINS_PANEL_LAYOUT)
+        var uploadImage =
+            event.getContact().uploadImage(skinsPanelLayoutImage.toExternalResource().toAutoCloseable())
+        repeat(2) {
+            if (!uploadImage.isUploaded(event.bot)) {
+                uploadImage = event.getContact()
+                    .uploadImage(skinsPanelLayoutImage.toExternalResource().toAutoCloseable())
             }
-            if (uploadImage.isUploaded(event.bot)) {
-                event.reply(MessageChainBuilder().append(uploadImage).build())
-            } else {
-                event.reply("图片上传失败,请稍候重试")
-            }
+        }
+        if (uploadImage.isUploaded(event.bot)) {
+            event.reply(MessageChainBuilder().append(uploadImage).build())
+        } else {
+            event.reply("图片上传失败,请稍候重试")
         }
         return false
     }
