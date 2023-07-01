@@ -418,7 +418,6 @@ object PersistenceDataInitiator {
                             level.reward.amount,
                             levelInt++,
                             false
-                            // todo 查询通行证内容 将其内容图片及名称啥的直接放到通行证信息里来
                         ).save()
                     }
                     chapter.freeRewards?.forEach { freeReward ->
@@ -430,7 +429,6 @@ object PersistenceDataInitiator {
                             freeReward.amount,
                             null,
                             true
-                            // todo 查询通行证内容 将其内容图片及名称啥的直接放到通行证信息里来
                         ).save()
                     }
                 }
