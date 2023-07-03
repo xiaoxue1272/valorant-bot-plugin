@@ -10,16 +10,35 @@ import java.util.*
 
 internal object SqliteHelper {
 
+    private const val databaseName = "ValorantPlugin.DB3"
 
     private val connection: Connection = JDBC.createConnection(
-        "${JDBC.PREFIX}${ValorantBotPlugin.dataFolder}${File.separator}ValorantPlugin.DB3",
+        "${JDBC.PREFIX}${ValorantBotPlugin.dataFolder}${File.separator}$databaseName",
         Properties()
     )
 
-    fun execute(sql: String) = connection.createStatement().execute(sql)
+    fun execute(sql: String): Boolean {
+        val statement = connection.createStatement()
+        val result = statement.execute(sql)
+        statement.close()
+        return result
+    }
 
-    fun <T> executeQuery(sql: String, block: (ResultSet) -> T): T =
-        block(connection.createStatement().executeQuery(sql))
+    fun executeGenerateKeys(sql: String): Long? {
+        val statement = connection.createStatement()
+        statement.execute(sql)
+        val result = statement.generatedKeys?.getLong(1)
+        statement.close()
+        return result
+    }
+
+    fun <T> executeQuery(sql: String, block: (ResultSet) -> T?): T? {
+        val statement = connection.createStatement()
+        val result = block(statement.executeQuery(sql))
+        statement.close()
+        return result
+    }
+
 
 }
 

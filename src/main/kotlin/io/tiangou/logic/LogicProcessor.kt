@@ -1,6 +1,8 @@
 package io.tiangou.logic
 
 
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.tiangou.*
 import io.tiangou.api.RiotApi
 import io.tiangou.api.data.AuthCookiesRequest
@@ -10,12 +12,17 @@ import io.tiangou.api.data.MultiFactorAuthRequest
 import io.tiangou.logic.utils.GenerateImageType
 import io.tiangou.logic.utils.StoreImageHelper
 import io.tiangou.other.http.actions
+import io.tiangou.other.http.client
 import io.tiangou.repository.UserCache
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
+import net.mamoe.mirai.console.util.cast
+import net.mamoe.mirai.contact.Group
+import net.mamoe.mirai.contact.file.AbsoluteFileFolder.Companion.extension
 import net.mamoe.mirai.event.events.MessageEvent
+import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.message.data.Image.Key.isUploaded
-import net.mamoe.mirai.message.data.MessageChainBuilder
+import net.mamoe.mirai.message.data.Image.Key.queryUrl
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 
 @Serializable
@@ -189,37 +196,82 @@ object CheckIsBotFriendProcessor : LogicProcessor<MessageEvent> {
 
 }
 
+suspend fun MessageEvent.uploadImage(bytes: ByteArray) {
+    var uploadImage =
+        getContact().uploadImage(bytes.toExternalResource().toAutoCloseable())
+    repeat(2) {
+        if (!uploadImage.isUploaded(bot)) {
+            uploadImage = getContact()
+                .uploadImage(bytes.toExternalResource().toAutoCloseable())
+        }
+    }
+    if (uploadImage.isUploaded(bot)) {
+        reply(MessageChainBuilder().append(uploadImage).build())
+    } else {
+        reply("图片上传失败,请稍候重试")
+    }
+}
+
 @Serializable
-object QueryPlayerDailyStoreItemProcessor : LogicProcessor<MessageEvent> {
+object QueryPlayerDailyStoreProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
         event.reply("正在查询每日商店,请稍等")
         val skinsPanelLayoutImage = StoreImageHelper.get(userCache, GenerateImageType.SKINS_PANEL_LAYOUT)
-        var uploadImage =
-            event.getContact().uploadImage(skinsPanelLayoutImage.toExternalResource().toAutoCloseable())
-        repeat(2) {
-            if (!uploadImage.isUploaded(event.bot)) {
-                uploadImage = event.getContact()
-                    .uploadImage(skinsPanelLayoutImage.toExternalResource().toAutoCloseable())
-            }
-        }
-        if (uploadImage.isUploaded(event.bot)) {
-            event.reply(MessageChainBuilder().append(uploadImage).build())
-        } else {
-            event.reply("图片上传失败,请稍候重试")
-        }
+        event.uploadImage(skinsPanelLayoutImage)
         return false
     }
 }
 
 @Serializable
-object SubscribeTaskDailyStore : LogicProcessor<MessageEvent> {
+object SubscribeTaskDailyStoreProcessor : LogicProcessor<MessageEvent> {
     override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
         userCache.apply {
             subscribeDailyStore = !subscribeDailyStore
             val status: String = if (subscribeDailyStore) "开启" else "关闭"
             event.reply("已将你的每日商店推送状态设置为:$status")
         }
+        return false
+    }
+}
+
+@Serializable
+object TellCustomBackgroundCanUploadProcessor : LogicProcessor<MessageEvent> {
+    override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
+        event.reply("请上传背景图片(若要回复为默认背景,请发送\"恢复默认\")")
+        return false
+    }
+}
+
+@Serializable
+object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
+    override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
+        if (event.message.toText() == "恢复默认") {
+            userCache.customBackgroundFile = null
+            event.reply("已将背景图片恢复至默认")
+        } else {
+            val downloadUrl = event.run {
+                message.firstIsInstanceOrNull<Image>()?.queryUrl()
+                    ?: takeIf { it.subject is Group }?.message?.firstIsInstanceOrNull<FileMessage>()
+                        ?.toAbsoluteFile(subject.cast())?.takeIf { ImageType.matchOrNull(it.extension) != null }
+                        ?.getUrl()
+            } ?: event.reply("无法解析图片,请确认图片后缀无误,推荐上传PNG或JPG格式的图片").let { return false }
+            userCache.customBackgroundFile = ValorantBotPlugin.dataFolder.resolve("${event.sender.id}_background.bkg")
+                .apply { writeBytes(client.get(downloadUrl).readBytes()) }
+            event.reply("上传成功")
+        }
+        StoreImageHelper.clean(userCache)
+        return false
+    }
+}
+
+@Serializable
+object QueryPlayerAccessoryStoreProcessor : LogicProcessor<MessageEvent> {
+
+    override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
+        event.reply("正在查询配件商店,请稍等")
+        val accessoryStoreImage = StoreImageHelper.get(userCache, GenerateImageType.ACCESSORY_STORE)
+        event.uploadImage(accessoryStoreImage)
         return false
     }
 }

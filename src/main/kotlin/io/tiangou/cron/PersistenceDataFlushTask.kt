@@ -1,6 +1,6 @@
 package io.tiangou.cron
 
-import io.tiangou.repository.PersistenceDataInitiator
+import io.tiangou.repository.persistnce.PersistenceDataInitiator
 import kotlinx.serialization.Serializable
 
 @Serializable

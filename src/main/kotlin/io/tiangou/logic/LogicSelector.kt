@@ -1,7 +1,6 @@
 package io.tiangou.logic
 
 import io.ktor.util.date.*
-import io.tiangou.EventHandleConfig
 import io.tiangou.Global
 import io.tiangou.reply
 import io.tiangou.repository.LogicRepository
@@ -31,20 +30,19 @@ class LogicSelector : CoroutineScope {
 
     fun loadLogic(message: String): LogicProcessor<MessageEvent>? {
         logicList = logicList ?: LogicRepository.find(message)
-        timeoutStamp = (getTimeMillis() + EventHandleConfig.config.waitTimeoutMinutes * 60 * 1000L)
+        timeoutStamp = (getTimeMillis() + Global.eventConfig.waitTimeoutMinutes * 60 * 1000L)
         return logicList?.get(index++)
     }
 
     fun createTimeoutCancelJob(event: MessageEvent, userCache: UserCache) {
-        if (timeoutCancelJob == null && isStatusNormal()) {
-            timeoutCancelJob = launch {
-                while (true) {
-                    delay(timeoutStamp!! - getTimeMillis())
-                    if (getTimeMillis() >= timeoutStamp!!) {
-                        userCache.clean()
-                        event.reply("等待输入超时,已自动退出,请重新发起")
-                        break
-                    }
+        (timeoutCancelJob == null && isStatusNormal()) || return
+        timeoutCancelJob = launch {
+            while (true) {
+                delay(timeoutStamp!! - getTimeMillis())
+                if (getTimeMillis() >= timeoutStamp!!) {
+                    userCache.clean()
+                    event.reply("等待输入超时,已自动退出,请重新发起")
+                    break
                 }
             }
         }

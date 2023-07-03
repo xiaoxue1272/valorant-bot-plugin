@@ -10,6 +10,10 @@ val HELP_LIST_MESSAGE: String by lazy {
     3.查询商店
     
     4.更新每日商店推送任务状态
+    
+    5.自定义商店背景图
+    
+    6.查询配件商店
     """.trimIndent()
 }
 

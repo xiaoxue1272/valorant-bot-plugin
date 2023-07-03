@@ -87,19 +87,25 @@ internal fun Surface.Companion.makeByImageAndProportion(bytes: ByteArray, wp: In
     makeByImageAndProportion(Image.makeFromEncoded(bytes), wp, hp)
 
 internal fun Surface.Companion.makeByImageAndProportion(image: Image, wp: Int, hp: Int): Surface {
-    return if (image.width > image.height) {
-        makeRasterN32Premul((image.height * wp.toFloat() / hp.toFloat()).toInt(), image.height)
-    } else if (image.width < image.height) {
-        makeRasterN32Premul(image.width, (image.width * hp.toFloat() / wp.toFloat()).toInt())
+    val maxSide = if (image.width > image.height) image.width else image.height
+    var width: Int
+    var height: Int
+    if (maxSide == image.width) {
+        width = image.height / hp * wp
+        height = image.height
     } else {
-        if (wp > hp) {
-            makeRasterN32Premul((image.height * wp.toFloat() / hp.toFloat()).toInt(), image.height)
-        } else if (hp > wp) {
-            makeRasterN32Premul(image.width, (image.width * hp.toFloat() / wp.toFloat()).toInt())
-        } else {
-            makeRasterN32Premul(image.width, image.height)
-        }
+        width = image.width
+        height = image.width / wp * hp
     }
+    if (width > image.width) {
+        width = image.width
+        height = image.width / wp * hp
+    }
+    if (height > image.height) {
+        width = image.height / hp * wp
+        height = image.height
+    }
+    return makeRasterN32Premul(width, height)
 }
 
 internal fun rgbaConvert(str: String): Int {

@@ -1,3 +1,5 @@
+@file:UseSerializers(FileSerializer::class)
+
 package io.tiangou.repository
 
 import io.tiangou.AutoFlushStorage
@@ -9,6 +11,7 @@ import io.tiangou.serializer.FileSerializer
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.serializer
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -18,7 +21,7 @@ data class UserCache(
     val riotClientData: RiotClientData = RiotClientData(),
     var isRiotAccountLogin: Boolean = false,
     var subscribeDailyStore: Boolean = false,
-    var customBackgroundFile: @Serializable(FileSerializer::class) File? = null,
+    var customBackgroundFile: File? = null,
     @Transient val logicSelector: LogicSelector = LogicSelector(),
 ) {
 

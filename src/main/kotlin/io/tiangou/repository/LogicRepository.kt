@@ -43,12 +43,20 @@ val DEFAULT_LOGIC_MAP: Map<String, List<LogicProcessor<MessageEvent>>> = mapOf(
     ),
     "查询商店" to listOf(
         CheckRiotStatusAndSettingProcessor,
-        QueryPlayerDailyStoreItemProcessor
+        QueryPlayerDailyStoreProcessor
     ),
     "更新每日商店推送任务状态" to listOf(
         CheckRiotStatusAndSettingProcessor,
         CheckIsBotFriendProcessor,
-        SubscribeTaskDailyStore
+        SubscribeTaskDailyStoreProcessor
+    ),
+    "自定义商店背景图" to listOf(
+        TellCustomBackgroundCanUploadProcessor,
+        UploadCustomBackgroundProcessor
+    ),
+    "查询配件商店" to listOf(
+        CheckRiotStatusAndSettingProcessor,
+        QueryPlayerAccessoryStoreProcessor
     )
 )
 

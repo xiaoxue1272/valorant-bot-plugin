@@ -1,4 +1,5 @@
 @file:JvmName("RiotApiKt")
+@file:UseSerializers(AtomicReferenceSerializer::class)
 
 package io.tiangou.api
 
@@ -10,6 +11,7 @@ import io.tiangou.api.data.*
 import io.tiangou.other.http.ClientData
 import io.tiangou.serializer.AtomicReferenceSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.UseSerializers
 import net.mamoe.mirai.console.util.safeCast
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.coroutineContext
@@ -142,8 +144,8 @@ sealed class RiotApi<in T : Any, out R : Any> : ApiInvoker<T, R> {
 
 @Serializable
 class RiotClientData(
-    private val authToken: @Serializable(AtomicReferenceSerializer::class) AtomicReference<String?> = AtomicReference(),
-    private val xRiotEntitlementsJwt: @Serializable(AtomicReferenceSerializer::class) AtomicReference<String?> = AtomicReference(),
+    private val authToken: AtomicReference<String?> = AtomicReference(),
+    private val xRiotEntitlementsJwt: AtomicReference<String?> = AtomicReference(),
     var puuid: String? = null,
     var region: String? = null,
     var shard: String? = null,

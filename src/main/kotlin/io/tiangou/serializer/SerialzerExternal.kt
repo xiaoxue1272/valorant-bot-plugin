@@ -59,7 +59,7 @@ class FileSerializer : KSerializer<File> {
         return Path(decoder.decodeString()).toFile()
     }
 
-    override val descriptor: SerialDescriptor = Long.serializer().descriptor
+    override val descriptor: SerialDescriptor = String.serializer().descriptor
 
     override fun serialize(encoder: Encoder, value: File) {
         encoder.encodeString(value.path)
