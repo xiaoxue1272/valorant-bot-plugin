@@ -161,6 +161,7 @@ object SaveLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
                 userCache.riotClientData.shard = it.shard
                 userCache.riotClientData.region = it.region
                 event.reply("设置成功")
+                StoreImageHelper.clean(userCache)
                 return false
             }
         }

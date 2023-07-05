@@ -74,7 +74,7 @@ object EventHandler : SimpleListenerHost() {
     }
 
     private fun GroupMessageEvent.isGroupMessageAllow(): Boolean =
-        when (Global.eventConfig.groupMessageHandleStorage) {
+        when (Global.eventConfig.groupMessageHandleStrategy) {
             Global.GroupMessageHandleEnum.AT_AND_QUOTE_REPLY -> message.firstIsInstanceOrNull<At>()?.target == bot.id
                     || message.firstIsInstanceOrNull<QuoteReply>()?.source?.fromId == bot.id
 

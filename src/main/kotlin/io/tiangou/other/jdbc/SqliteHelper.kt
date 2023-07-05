@@ -1,8 +1,7 @@
 package io.tiangou.other.jdbc
 
-import io.tiangou.ValorantBotPlugin
+import io.tiangou.Global
 import org.sqlite.JDBC
-import java.io.File
 import java.sql.Connection
 import java.sql.ResultSet
 import java.util.*
@@ -10,12 +9,7 @@ import java.util.*
 
 internal object SqliteHelper {
 
-    private const val databaseName = "ValorantPlugin.DB3"
-
-    private val connection: Connection = JDBC.createConnection(
-        "${JDBC.PREFIX}${ValorantBotPlugin.dataFolder}${File.separator}$databaseName",
-        Properties()
-    )
+    private val connection: Connection = JDBC.createConnection(Global.databaseConfig.jdbcUrl, Properties())
 
     fun execute(sql: String): Boolean {
         val statement = connection.createStatement()

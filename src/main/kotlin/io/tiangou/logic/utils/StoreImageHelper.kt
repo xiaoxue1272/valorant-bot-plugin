@@ -6,6 +6,7 @@ import io.tiangou.ValorantBotPlugin
 import io.tiangou.api.RiotApi
 import io.tiangou.api.data.StoreFrontResponse
 import io.tiangou.api.data.StorefrontRequest
+import io.tiangou.logic.utils.StoreImageHelper.Companion.getBackgroundFile
 import io.tiangou.logic.utils.StoreImageHelper.Companion.storeImage
 import io.tiangou.other.http.actions
 import io.tiangou.other.http.client
@@ -17,9 +18,11 @@ import org.jetbrains.skia.*
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
-sealed interface StoreImageHelper {
+internal sealed interface StoreImageHelper {
 
     suspend fun generate(): ByteArray
+
+    fun synchronousGenerate() = runBlocking { generate() }
 
     companion object {
 
@@ -36,49 +39,57 @@ sealed interface StoreImageHelper {
 
         internal val cacheAccessoryStoreImages: ConcurrentHashMap<String, ByteArray> by lazy { ConcurrentHashMap() }
 
-        suspend fun get(userCache: UserCache, type: GenerateImageType): ByteArray {
-            return when (type) {
-                GenerateImageType.SKINS_PANEL_LAYOUT -> cacheSkinsPanelLayoutImages[userCache.riotClientData.puuid!!]
-                    ?: SkinsPanelLayout(userCache).generate()
-                        .apply { cacheSkinsPanelLayoutImages[userCache.riotClientData.puuid!!] = this }
 
-                GenerateImageType.ACCESSORY_STORE -> cacheAccessoryStoreImages[userCache.riotClientData.puuid!!]
-                    ?: AccessoryStore(userCache).generate()
-                        .apply { cacheAccessoryStoreImages[userCache.riotClientData.puuid!!] = this }
+        fun get(userCache: UserCache, type: GenerateImageType): ByteArray {
+            val key = userCache.riotClientData.puuid!!
+            return synchronized(userCache) {
+                when (type) {
+                    GenerateImageType.SKINS_PANEL_LAYOUT -> cacheSkinsPanelLayoutImages[key]
+                        ?: SkinsPanelLayout(userCache).synchronousGenerate()
+                            .apply { cacheSkinsPanelLayoutImages[key] = this }
+
+                    GenerateImageType.ACCESSORY_STORE -> cacheAccessoryStoreImages[key]
+                        ?: AccessoryStore(userCache).synchronousGenerate()
+                            .apply { cacheAccessoryStoreImages[key] = this }
+                }
             }
         }
 
         fun clean(userCache: UserCache) {
             userCache.riotClientData.puuid?.let {
-                cacheSkinsPanelLayoutImages.remove(it)
-                cacheAccessoryStoreImages.remove(it)
+                synchronized(userCache) {
+                    cacheSkinsPanelLayoutImages.remove(it)
+                    cacheAccessoryStoreImages.remove(it)
+                }
             }
         }
 
-        internal fun storeImage(background: File?, imageList: List<Image>): ByteArray {
-            val image = background?.let { Image.makeFromEncoded(it.readBytes()) }
-                ?: Image.makeFromEncoded(globalBackground.readBytes())
-            return Surface.makeByImageAndProportion(image, 9, 16).afterClose {
-                canvas.writeImageRect(image, (width - image.width) / 2f, (height - image.height) / 2f).apply {
-                    imageList.forEachIndexed { index, it ->
-                        val lr = width * 0.4f
-                        val imageWidth = width - lr
-                        val imageHeight = it.height * (imageWidth / it.width)
-                        val top = (height - imageHeight * imageList.size - height * 0.05f * (imageList.size - 1)) / 2
-//                        val top = (height - imageHeight * imageList.size + height * 0.05f * (imageList.size - 1)) / 2
-                        writeImageRect(
-                            it,
-                            imageWidth,
-                            imageHeight,
-                            lr / 2f,
-                            top + (imageHeight + height * 0.05f) * index
-                        ).save()
+        internal fun storeImage(background: Image, imageList: List<Image>): ByteArray {
+            return Surface.makeByImageAndProportion(background, 9, 16).afterClose {
+                canvas.writeImageRect(background, (width - background.width) / 2f, (height - background.height) / 2f)
+                    .apply {
+                        imageList.forEachIndexed { index, it ->
+                            val lr = width * 0.4f
+                            val imageWidth = width - lr
+                            val imageHeight = it.height * (imageWidth / it.width)
+                            val top =
+                                (height - imageHeight * imageList.size - height * 0.05f * (imageList.size - 1)) / 2
+                            writeImageRect(
+                                it,
+                                imageWidth,
+                                imageHeight,
+                                lr / 2f,
+                                top + (imageHeight + height * 0.05f) * index
+                            ).save()
+                        }
                     }
-                }
                 makeImageSnapshot().encodeToData()!!.bytes
             }
         }
 
+        fun getBackgroundFile(userCache: UserCache) =
+            userCache.customBackgroundFile?.let { Image.makeFromEncoded(it.readBytes()) }
+                ?: Image.makeFromEncoded(globalBackground.readBytes())
 
     }
 
@@ -113,10 +124,16 @@ object StoreApiHelper {
 
 class SkinsPanelLayout(private val userCache: UserCache) : StoreImageHelper {
 
-    override suspend fun generate(): ByteArray = storeImage(
-        userCache.customBackgroundFile,
-        StoreApiHelper.querySkinsPanelLayout(userCache).map { singleSkinImage(getSkinImageUrlData(it)) }
-    )
+    override suspend fun generate(): ByteArray {
+        val image = getBackgroundFile(userCache)
+        val width = (image.width - image.width * 0.4f).toInt()
+        return storeImage(
+            image,
+            StoreApiHelper.querySkinsPanelLayout(userCache).map {
+                singleSkinImage(width, width / 2, getSkinImageUrlData(it))
+            }
+        )
+    }
 
     private fun getSkinImageUrlData(skinLevelUuid: String): SkinImageData {
         val skinLevel = WeaponSkinLevel(skinLevelUuid).queryOne()
@@ -140,35 +157,40 @@ class SkinsPanelLayout(private val userCache: UserCache) : StoreImageHelper {
         val skinName: String?
     )
 
-    private fun singleSkinImage(data: SkinImageData): Image =
-        Surface.makeRaster(ImageInfo.makeN32Premul(1200, 600)).afterClose {
-            runBlocking {
-                if (data.backgroundColor?.isNotEmpty() == true) {
-                    canvas.writeBackgroundColor(this@afterClose, data.backgroundColor, 0.5f)
-                }
-                if (data.contentTiersUrl?.isNotEmpty() == true) {
-                    canvas.writeImageRect(client.get(data.contentTiersUrl).readBytes(), 100f, 100f, 1100f)
-                }
-                if (data.themeUrl?.isNotEmpty() == true) {
-                    canvas.writeAutoSizeImage(
-                        client.get(data.themeUrl).readBytes(),
-                        this@afterClose,
-                        alphaPercent = 0.5f
-                    )
-                }
-                if (data.skinUrl?.isNotEmpty() == true) {
-                    canvas.writeAutoSizeImage(client.get(data.skinUrl).readBytes(), this@afterClose, 0.3f)
-                }
-                if (data.skinName?.isNotEmpty() == true) {
-                    val textLine = TextLine.make(data.skinName, Font(Typeface.makeDefault(), 60f))
-                    canvas.drawTextLine(
-                        textLine,
-                        width.toFloat() / 2f - textLine.width / 2f,
-                        height.toFloat() / 2f + 250f,
-                        Paint().apply { color = Color.WHITE })
-                }
-                flush()
+    private suspend fun singleSkinImage(width: Int, height: Int, data: SkinImageData): Image =
+        Surface.makeRaster(ImageInfo.makeN32Premul(width, height)).afterClose {
+            if (data.backgroundColor?.isNotEmpty() == true) {
+                canvas.writeBackgroundColor(this@afterClose, data.backgroundColor, 0.5f)
             }
+            if (data.contentTiersUrl?.isNotEmpty() == true) {
+                val contentTireSize = height / 6f
+                canvas.writeImageRect(
+                    client.get(data.contentTiersUrl).readBytes(),
+                    contentTireSize,
+                    contentTireSize,
+                    width - contentTireSize
+                )
+            }
+            if (data.themeUrl?.isNotEmpty() == true) {
+                canvas.writeAutoSizeImage(
+                    client.get(data.themeUrl).readBytes(),
+                    this@afterClose,
+                    alphaPercent = 0.5f
+                )
+            }
+            if (data.skinUrl?.isNotEmpty() == true) {
+                canvas.writeAutoSizeImage(client.get(data.skinUrl).readBytes(), this@afterClose, 0.3f)
+            }
+            if (data.skinName?.isNotEmpty() == true) {
+                val fontSize = height / 12f
+                val textLine = TextLine.make(data.skinName, Font(Typeface.makeDefault(), fontSize))
+                canvas.drawTextLine(
+                    textLine,
+                    width.toFloat() / 2f - textLine.width / 2f,
+                    height.toFloat() / 2f + fontSize * 5,
+                    Paint().apply { color = Color.WHITE })
+            }
+            flush()
             makeImageSnapshot()
         }
 
@@ -176,10 +198,16 @@ class SkinsPanelLayout(private val userCache: UserCache) : StoreImageHelper {
 
 class AccessoryStore(private val userCache: UserCache) : StoreImageHelper {
 
-    override suspend fun generate(): ByteArray = storeImage(
-        userCache.customBackgroundFile,
-        StoreApiHelper.queryAccessoryStore(userCache).map { singleSkinImage(getAccessoryImageUrlData(it)) }
-    )
+    override suspend fun generate(): ByteArray {
+        val image = getBackgroundFile(userCache)
+        val width = (image.width - image.width * 0.4f).toInt()
+        return storeImage(
+            image,
+            StoreApiHelper.queryAccessoryStore(userCache).map {
+                singleSkinImage(width, width / 2, getAccessoryImageUrlData(it))
+            }
+        )
+    }
 
     private fun getAccessoryImageUrlData(accessory: StoreFrontResponse.AccessoryStore.AccessoryStoreOffer): AccessoryImageData {
         val contract = Contract(accessory.contractID).queryOne()
@@ -216,37 +244,36 @@ class AccessoryStore(private val userCache: UserCache) : StoreImageHelper {
         val contractName: String?,
     )
 
-    private fun singleSkinImage(data: AccessoryImageData): Image =
-        Surface.makeRaster(ImageInfo.makeN32Premul(1200, 600)).afterClose {
-            runBlocking {
-                val textX: Float = width / 2f
-                var heightY: Float = height / 2f
-                canvas.writeBackgroundColor(this@afterClose, "#707070", 0.5f)
-                if (data.itemUrl?.isNotEmpty() == true) {
-                    canvas.writeAutoSizeImage(client.get(data.itemUrl).readBytes(), this@afterClose)
-                    heightY = height - 60f
-                }
-                if (data.itemName?.isNotEmpty() == true) {
-                    val textLine = TextLine.make(data.itemName, Font(Typeface.makeDefault(), 50f))
-                    canvas.drawTextLine(
-                        textLine,
-                        textX - textLine.width / 2f,
-                        heightY,
-                        Paint().apply { color = Color.WHITE }
-                    )
-                }
-                if (data.contractName?.isNotEmpty() == true) {
-                    val textLine =
-                        TextLine.make(data.contractName, Font(Typeface.makeDefault(), 50f))
-                    canvas.drawTextLine(
-                        textLine,
-                        textX - textLine.width / 2f,
-                        height.toFloat() - 10f,
-                        Paint().apply { color = Color.WHITE }
-                    )
-                }
-                flush()
+    private suspend fun singleSkinImage(width: Int, height: Int, data: AccessoryImageData): Image =
+        Surface.makeRaster(ImageInfo.makeN32Premul(width, height)).afterClose {
+            val textX: Float = width / 2f
+            var heightY: Float = height / 2f
+            val fontSize = height / 12f
+            canvas.writeBackgroundColor(this@afterClose, "#707070", 0.5f)
+            if (data.itemUrl?.isNotEmpty() == true) {
+                canvas.writeAutoSizeImage(client.get(data.itemUrl).readBytes(), this@afterClose)
+                heightY = height - (fontSize + fontSize / 5)
             }
+            if (data.itemName?.isNotEmpty() == true) {
+                val textLine = TextLine.make(data.itemName, Font(Typeface.makeDefault(), fontSize))
+                canvas.drawTextLine(
+                    textLine,
+                    textX - textLine.width / 2f,
+                    heightY,
+                    Paint().apply { color = Color.WHITE }
+                )
+            }
+            if (data.contractName?.isNotEmpty() == true) {
+                val textLine =
+                    TextLine.make(data.contractName, Font(Typeface.makeDefault(), fontSize))
+                canvas.drawTextLine(
+                    textLine,
+                    textX - textLine.width / 2f,
+                    height.toFloat() - fontSize / 5,
+                    Paint().apply { color = Color.WHITE }
+                )
+            }
+            flush()
             makeImageSnapshot()
         }
 

@@ -40,6 +40,7 @@ enum class ServerLocationEnum(
     NA("北美", "na", "na"),
     BR("巴西", "na", "br"),
     LATAM("拉丁美洲", "na", "latam"),
+    KR("韩国", "kr", "kr"),
     EU("欧洲", "eu", "eu"),
     ;
 }

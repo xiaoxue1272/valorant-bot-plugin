@@ -5,7 +5,7 @@ import io.tiangou.cron.CronTaskManager
 import io.tiangou.cron.StoreCachesCleanTask
 import io.tiangou.repository.persistnce.PersistenceDataInitiator
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import net.mamoe.mirai.console.command.CommandManager
@@ -22,6 +22,7 @@ import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.events.MessageEvent
 import net.mamoe.mirai.event.registerTo
 import net.mamoe.mirai.message.data.*
+import java.io.File
 
 
 fun MessageChain.toText() =
@@ -71,7 +72,7 @@ object ValorantBotPlugin : KotlinPlugin(
     description = JvmPluginDescription(
         id = "io.tiangou.valorant-bot-plugin",
         name = "valorant-bot-plugin",
-        version = "0.5.0-pre"
+        version = "0.5.0"
     )
     {
         author("xiaoxue1272")
@@ -81,7 +82,11 @@ object ValorantBotPlugin : KotlinPlugin(
     override fun onEnable() {
         Global.reload()
         CronTaskManager.reload()
-        runBlocking { PersistenceDataInitiator.init() }
+        if (Global.databaseConfig.isInitOnEnable) {
+            launch {
+                PersistenceDataInitiator.init()
+            }
+        }
         EventHandler.registerTo(GlobalEventChannel)
         CronTaskManager.start()
         StoreCachesCleanTask.enable()
@@ -113,10 +118,13 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
         get() = ValorantBotPlugin
 
     @ValueDescription("事件监听配置")
-    val eventConfig: EventHandleConfigData by value(EventHandleConfigData())
+    val eventConfig: EventConfigData by value(EventConfigData())
+
+    @ValueDescription("数据库配置")
+    val databaseConfig: DatabaseConfigData by value(DatabaseConfigData())
 
     @Serializable
-    data class EventHandleConfigData(
+    data class EventConfigData(
         @ValueDescription("当输入不正确时发出警告(为true时回复未知操作,false不回复消息)")
         val isWarnOnInputNotFound: Boolean = true,
         @ValueDescription(
@@ -125,9 +133,17 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
             默认为: AT_AND_QUOTE_REPLY, 就是监听 AT消息和引用回复消息.
         """
         )
-        val groupMessageHandleStorage: GroupMessageHandleEnum = GroupMessageHandleEnum.AT_AND_QUOTE_REPLY,
+        val groupMessageHandleStrategy: GroupMessageHandleEnum = GroupMessageHandleEnum.AT_AND_QUOTE_REPLY,
         @ValueDescription("指令等待输入超时时间,请不要设置太短或太长,分为单位,默认5分钟")
         val waitTimeoutMinutes: Int = 5
+    )
+
+    @Serializable
+    data class DatabaseConfigData(
+        @ValueDescription("数据库连接JDBC URL")
+        val jdbcUrl: String = "jdbc:sqlite:${ValorantBotPlugin.dataFolder}${File.separator}ValorantPlugin.DB3",
+        @ValueDescription("是否在插件加载时就初始化数据库数据")
+        val isInitOnEnable: Boolean = true
     )
 
     @Serializable
