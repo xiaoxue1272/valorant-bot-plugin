@@ -105,16 +105,24 @@ object StoreApiHelper {
             RiotApi.Storefront.execute(StorefrontRequest(shard!!, puuid!!))
         }.apply { storeFronts[userCache.riotClientData.puuid!!] = this }
 
-    suspend fun querySkinsPanelLayout(userCache: UserCache): List<String> {
+    internal suspend fun querySkinsPanelLayout(userCache: UserCache): List<String> {
         return storeFronts[userCache.riotClientData.puuid!!]?.skinsPanelLayout?.singleItemOffers ?: invokeRiotApi(
             userCache
         ).skinsPanelLayout.singleItemOffers
     }
 
-    suspend fun queryAccessoryStore(userCache: UserCache): List<StoreFrontResponse.AccessoryStore.AccessoryStoreOffer> {
+    internal suspend fun queryAccessoryStore(userCache: UserCache): List<StoreFrontResponse.AccessoryStore.AccessoryStoreOffer> {
         return storeFronts[userCache.riotClientData.puuid!!]?.accessoryStore?.accessoryStoreOffers ?: invokeRiotApi(
             userCache
         ).accessoryStore.accessoryStoreOffers
+    }
+
+    fun clean(userCache: UserCache) {
+        userCache.riotClientData.puuid?.let {
+            synchronized(userCache) {
+                storeFronts.remove(it)
+            }
+        }
     }
 
     internal val storeFronts: ConcurrentHashMap<String, StoreFrontResponse> by lazy { ConcurrentHashMap() }

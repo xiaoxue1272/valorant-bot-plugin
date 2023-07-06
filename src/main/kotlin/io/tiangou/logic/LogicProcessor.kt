@@ -10,6 +10,7 @@ import io.tiangou.api.data.AuthRequest
 import io.tiangou.api.data.AuthResponse
 import io.tiangou.api.data.MultiFactorAuthRequest
 import io.tiangou.logic.utils.GenerateImageType
+import io.tiangou.logic.utils.StoreApiHelper
 import io.tiangou.logic.utils.StoreImageHelper
 import io.tiangou.other.http.actions
 import io.tiangou.other.http.client
@@ -98,11 +99,7 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
                 )
             when (authResponse.type) {
                 AuthResponse.RESPONSE -> {
-                    flushAccessToken(authResponse.response!!.parameters.uri)
-                    flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
-                    puuid = RiotApi.PlayerInfo.execute().sub
-                    event.reply("登录成功")
-                    userCache.isRiotAccountLogin = true
+                    userCache.loginSuccessfulHandle(event, authResponse.response!!.parameters.uri)
                 }
 
                 AuthResponse.MULTI_FACTOR -> {
@@ -118,6 +115,16 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
     }
 }
 
+internal suspend fun UserCache.loginSuccessfulHandle(event: MessageEvent, authUrl: String) {
+    StoreApiHelper.clean(this)
+    StoreImageHelper.clean(this)
+    riotClientData.flushAccessToken(authUrl)
+    riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
+    riotClientData.puuid = RiotApi.PlayerInfo.execute().sub
+    event.reply("登录成功")
+    isRiotAccountLogin = true
+}
+
 @Serializable
 object VerifyRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
 
@@ -128,11 +135,7 @@ object VerifyRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
                 val authResponse = RiotApi.MultiFactorAuth.execute(MultiFactorAuthRequest(event.message.toText()))
                 when (authResponse.type) {
                     AuthResponse.RESPONSE -> {
-                        flushAccessToken(authResponse.response!!.parameters.uri)
-                        flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
-                        puuid = RiotApi.PlayerInfo.execute().sub
-                        event.reply("登录成功")
-                        userCache.isRiotAccountLogin = true
+                        userCache.loginSuccessfulHandle(event, authResponse.response!!.parameters.uri)
                     }
 
                     else -> event.reply("登录失败,请重新登录")
@@ -162,6 +165,7 @@ object SaveLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
                 userCache.riotClientData.region = it.region
                 event.reply("设置成功")
                 StoreImageHelper.clean(userCache)
+                StoreApiHelper.clean(userCache)
                 return false
             }
         }

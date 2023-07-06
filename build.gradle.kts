@@ -22,7 +22,7 @@ enum class SkikoOSArch(
 }
 
 group = "io.tiangou.valobot"
-version = "0.5.0"
+version = "0.5.1"
 
 val kotlinVersion = "1.8.20"
 val ktorVersion = "2.2.4"
