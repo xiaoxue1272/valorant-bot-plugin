@@ -34,21 +34,25 @@ suspend fun MessageEvent.reply(message: Message) {
 }
 
 suspend fun CommandSender.reply(message: String) {
-    if (subject != null && user != null) {
-        when (subject) {
-            is Group -> sendMessage(MessageChainBuilder().append(At(user!!)).append(message).build())
-            else -> sendMessage(message)
-        }
-    }
+    if (subject != null && subject is Group) {
+        sendMessage(
+            MessageChainBuilder()
+                .apply { if (user != null) append(At(user!!)) }
+                .append(message)
+                .build()
+        )
+    } else sendMessage(message)
 }
 
 suspend fun CommandSender.reply(message: Message) {
-    if (subject != null && user != null) {
-        when (subject) {
-            is Group -> sendMessage(MessageChainBuilder().append(At(user!!)).append(message).build())
-            else -> sendMessage(message)
-        }
-    }
+    if (subject != null && subject is Group) {
+        sendMessage(
+            MessageChainBuilder()
+                .apply { if (user != null) append(At(user!!)) }
+                .append(message)
+                .build()
+        )
+    } else sendMessage(message)
 }
 
 suspend fun MessageEvent.uploadImage(bytes: ByteArray) {
