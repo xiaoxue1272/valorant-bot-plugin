@@ -3,12 +3,9 @@ package io.tiangou.logic.utils
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.tiangou.ValorantBotPlugin
-import io.tiangou.api.RiotApi
 import io.tiangou.api.data.StoreFrontResponse
-import io.tiangou.api.data.StorefrontRequest
 import io.tiangou.logic.utils.StoreImageHelper.Companion.getBackgroundFile
 import io.tiangou.logic.utils.StoreImageHelper.Companion.storeImage
-import io.tiangou.other.http.actions
 import io.tiangou.other.http.client
 import io.tiangou.other.skiko.*
 import io.tiangou.repository.UserCache
@@ -95,40 +92,6 @@ internal sealed interface StoreImageHelper {
 
 }
 
-
-object StoreApiHelper {
-
-    private suspend fun invokeRiotApi(userCache: UserCache) =
-        userCache.riotClientData.actions {
-            flushAccessToken(RiotApi.CookieReAuth.execute())
-            flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
-            RiotApi.Storefront.execute(StorefrontRequest(shard!!, puuid!!))
-        }.apply { storeFronts[userCache.riotClientData.puuid!!] = this }
-
-    internal suspend fun querySkinsPanelLayout(userCache: UserCache): List<String> {
-        return storeFronts[userCache.riotClientData.puuid!!]?.skinsPanelLayout?.singleItemOffers ?: invokeRiotApi(
-            userCache
-        ).skinsPanelLayout.singleItemOffers
-    }
-
-    internal suspend fun queryAccessoryStore(userCache: UserCache): List<StoreFrontResponse.AccessoryStore.AccessoryStoreOffer> {
-        return storeFronts[userCache.riotClientData.puuid!!]?.accessoryStore?.accessoryStoreOffers ?: invokeRiotApi(
-            userCache
-        ).accessoryStore.accessoryStoreOffers
-    }
-
-    fun clean(userCache: UserCache) {
-        userCache.riotClientData.puuid?.let {
-            synchronized(userCache) {
-                storeFronts.remove(it)
-            }
-        }
-    }
-
-    internal val storeFronts: ConcurrentHashMap<String, StoreFrontResponse> by lazy { ConcurrentHashMap() }
-
-
-}
 
 class SkinsPanelLayout(private val userCache: UserCache) : StoreImageHelper {
 

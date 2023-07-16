@@ -9,6 +9,8 @@ class PersistenceDataFlushTask(
     override var isEnable: Boolean
 ) : Task() {
 
+    override val description: String = "Valorant数据更新"
+
     override suspend fun execute() {
         log.info("Valorant皮肤库数据刷新任务,开始")
         runCatching {

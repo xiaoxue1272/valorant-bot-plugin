@@ -17,6 +17,9 @@ class DailyStorePushTask(
     override var isEnable: Boolean
 ) : Task() {
 
+
+    override val description: String = "每日商店推送"
+
     override suspend fun execute() {
         log.info("每日商店定时推送任务,开始")
         val date = DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDate.now())

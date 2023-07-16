@@ -21,10 +21,11 @@ import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.contact.Group
 import net.mamoe.mirai.contact.file.AbsoluteFileFolder.Companion.extension
 import net.mamoe.mirai.event.events.MessageEvent
-import net.mamoe.mirai.message.data.*
-import net.mamoe.mirai.message.data.Image.Key.isUploaded
+import net.mamoe.mirai.message.data.FileMessage
+import net.mamoe.mirai.message.data.Image
 import net.mamoe.mirai.message.data.Image.Key.queryUrl
-import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
+import net.mamoe.mirai.message.data.ImageType
+import net.mamoe.mirai.message.data.firstIsInstanceOrNull
 
 @Serializable
 sealed interface LogicProcessor<T : MessageEvent> {
@@ -115,16 +116,6 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
     }
 }
 
-internal suspend fun UserCache.loginSuccessfulHandle(event: MessageEvent, authUrl: String) {
-    StoreApiHelper.clean(this)
-    StoreImageHelper.clean(this)
-    riotClientData.flushAccessToken(authUrl)
-    riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
-    riotClientData.puuid = RiotApi.PlayerInfo.execute().sub
-    event.reply("登录成功")
-    isRiotAccountLogin = true
-}
-
 @Serializable
 object VerifyRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
 
@@ -199,22 +190,6 @@ object CheckIsBotFriendProcessor : LogicProcessor<MessageEvent> {
         return true
     }
 
-}
-
-suspend fun MessageEvent.uploadImage(bytes: ByteArray) {
-    var uploadImage =
-        getContact().uploadImage(bytes.toExternalResource().toAutoCloseable())
-    repeat(2) {
-        if (!uploadImage.isUploaded(bot)) {
-            uploadImage = getContact()
-                .uploadImage(bytes.toExternalResource().toAutoCloseable())
-        }
-    }
-    if (uploadImage.isUploaded(bot)) {
-        reply(MessageChainBuilder().append(uploadImage).build())
-    } else {
-        reply("图片上传失败,请稍候重试")
-    }
 }
 
 @Serializable

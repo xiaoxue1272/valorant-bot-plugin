@@ -57,6 +57,6 @@ enum class ApiErrorEnum(
 
     API_REQUEST_FAILED_AND_RETRY_OVER("API请求失败,且重试次数已达上限,请稍候再试"),
 
-    API_REQUEST_FAILED_GET_ENTITLEMENTS_TOKEN("entitlements_token获取失败"),
+    API_REQUEST_FAILED_GET_ENTITLEMENTS_TOKEN("entitlements_token获取失败,请重新登录"),
 
 }

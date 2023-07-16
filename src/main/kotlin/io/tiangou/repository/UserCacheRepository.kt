@@ -60,8 +60,9 @@ data class UserCache(
 
 }
 
-object UserCacheRepository :
-    AutoFlushStorage<MutableMap<Long, UserCache>>(JsonStorage("user-cache", StoragePathEnum.DATA_PATH, serializer())) {
+object UserCacheRepository : AutoFlushStorage<MutableMap<Long, UserCache>>(
+    JsonStorage("user-cache", StoragePathEnum.DATA_PATH, serializer())
+) {
 
     override var data: MutableMap<Long, UserCache> = runBlocking { load() ?: store(ConcurrentHashMap()) }
 

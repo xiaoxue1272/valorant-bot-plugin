@@ -1,9 +1,6 @@
 package io.tiangou
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import kotlinx.serialization.KSerializer
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.utils.MiraiLogger
@@ -16,6 +13,13 @@ import kotlin.time.toDuration
  * 持久化存储接口
  *
  * 其实很想实现 [net.mamoe.mirai.console.data.PluginData] 但是我要以 JSON形式保存 而且我也没太整明白怎么实现PluginData
+ *
+ *
+ * ------------------------------------
+ *
+ * 2023.07.15
+ * mirai 2.15更新了插件可以以JSON格式保存 但是对于Map对象的属性委托 是否能检测到Map.Entry.value的内部属性变更, 暂时还存疑(看了一圈我觉得不能)
+ * 所以不出意外的情况下,后续不会考虑迁移至PluginData
  *
  */
 interface Storage<T> {
@@ -119,21 +123,27 @@ abstract class AutoFlushStorage<T : Any>(
 
         var data: Any? = null
 
+        private suspend fun saveData() {
+            autoFlushList.forEach { autoFlushStore ->
+                autoFlushStore.apply {
+                    runCatching {
+                        log.debug("auto flush data to file, path: ${storeFile.absolutePath}")
+                        store(data)
+                    }.onFailure {
+                        log.warning("auto flush error", it)
+                    }
+                }
+            }
+        }
+
         init {
             Global.coroutineScope.launch {
                 while (true) {
                     delay(10.toDuration(DurationUnit.MINUTES))
-                    autoFlushList.forEach { autoFlushStore ->
-                        autoFlushStore.apply {
-                            runCatching {
-                                log.debug("auto flush data to file, path: ${storeFile.absolutePath}")
-                                store(data)
-                            }.onFailure {
-                                log.warning("auto flush error", it)
-                            }
-                        }
-                    }
+                    saveData()
                 }
+            }.invokeOnCompletion {
+                runBlocking(Dispatchers.IO) { saveData() }
             }
         }
 

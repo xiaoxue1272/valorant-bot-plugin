@@ -12,6 +12,7 @@ import net.mamoe.mirai.console.data.ValueDescription
 import net.mamoe.mirai.console.data.ValueName
 import net.mamoe.mirai.console.data.value
 import net.mamoe.mirai.utils.MiraiLogger
+import java.time.ZoneId
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 
@@ -45,18 +46,20 @@ object CronTaskManager : AutoSavePluginConfig("cron-task") {
 sealed class Task : CoroutineScope {
 
     @Transient
-    val log: MiraiLogger = MiraiLogger.Factory.create(this::class)
+    protected val log: MiraiLogger = MiraiLogger.Factory.create(this::class)
 
     abstract var cron: String
 
     abstract var isEnable: Boolean
+
+    abstract val description: String
 
     @Transient
     final override val coroutineContext: CoroutineContext =
         Global.coroutineScope.coroutineContext + CoroutineName("Task :${this::class::simpleName}")
 
     @Transient
-    private lateinit var cronPattern: CronPattern
+    internal lateinit var cronPattern: CronPattern
 
     @Transient
     internal var job: Job? = null
@@ -64,10 +67,11 @@ sealed class Task : CoroutineScope {
     open fun enable() {
         cronPattern = CronPattern.of(cron)
         job = launch {
+            val calendar = Calendar.getInstance(TimeZone.getTimeZone(ZoneId.of("CTT")))
             while (true) {
                 val nowTimeMillis = getTimeMillis()
                 val waitOnExecuteTimeMillis =
-                    CronPatternUtil.nextDateAfter(cronPattern, Date(), true).time - nowTimeMillis
+                    CronPatternUtil.nextDateAfter(cronPattern, calendar.time, true).time - nowTimeMillis
                 delay(waitOnExecuteTimeMillis)
                 val startTimeMillis = getTimeMillis()
                 executeRunCaching()

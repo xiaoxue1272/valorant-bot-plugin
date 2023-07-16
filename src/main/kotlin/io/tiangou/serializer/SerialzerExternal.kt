@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.Path
 
-object CookieSerializer : KSerializer<Cookie> {
+class CookieSerializer : KSerializer<Cookie> {
 
     override fun deserialize(decoder: Decoder): Cookie {
         return parseServerSetCookieHeader(decoder.decodeString())

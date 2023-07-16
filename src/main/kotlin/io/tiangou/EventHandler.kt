@@ -5,10 +5,7 @@ import kotlinx.coroutines.launch
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.event.EventHandler
 import net.mamoe.mirai.event.SimpleListenerHost
-import net.mamoe.mirai.event.events.BotInvitedJoinGroupRequestEvent
-import net.mamoe.mirai.event.events.GroupMessageEvent
-import net.mamoe.mirai.event.events.MessageEvent
-import net.mamoe.mirai.event.events.NewFriendRequestEvent
+import net.mamoe.mirai.event.events.*
 import net.mamoe.mirai.message.data.At
 import net.mamoe.mirai.message.data.QuoteReply
 import net.mamoe.mirai.message.data.firstIsInstanceOrNull
@@ -20,12 +17,16 @@ object EventHandler : SimpleListenerHost() {
 
     @EventHandler
     suspend fun BotInvitedJoinGroupRequestEvent.onMessage() {
-        accept()
+        if (Global.eventConfig.autoAcceptGroupRequest) {
+            accept()
+        }
     }
 
     @EventHandler
     suspend fun NewFriendRequestEvent.onMessage() {
-        accept()
+        if (Global.eventConfig.autoAcceptFriendRequest) {
+            accept()
+        }
     }
 
     @EventHandler
@@ -43,7 +44,7 @@ object EventHandler : SimpleListenerHost() {
                     runCatching {
                         while (true) {
                             val logicProcessor = loadLogic(this@onMessage.message.toText())
-                                ?: inputNotFoundHandle().let { return@launch }
+                                ?: inputNotFoundHandle("未找到对应操作,请检查输入是否正确").let { return@launch }
                             if (!logicProcessor.process(this@onMessage, this@apply)) break
                         }
                     }.onFailure {
@@ -63,29 +64,43 @@ object EventHandler : SimpleListenerHost() {
         }
     }
 
-    private fun MessageEvent.checkMessageAllow(): Boolean {
+    private suspend fun MessageEvent.checkMessageAllow(): Boolean {
         if (Bot.getInstanceOrNull(sender.id) != null) {
             return false
         }
-        return when (this) {
-            is GroupMessageEvent -> isGroupMessageAllow()
-            else -> true
+        return isAllow()
+    }
+
+    private suspend fun MessageEvent.isAllow(): Boolean {
+        val onList = when (this) {
+            is GroupMessageEvent ->  {
+                if (!isGroupMessageAllow()) {
+                    return false
+                }
+                VisitConfig.onGroups
+            }
+            is UserMessageEvent -> VisitConfig.onUsers
+            else -> emptyList()
         }
+        when (VisitConfig.controlType) {
+            VisitControlEnum.WHITE_LIST -> if (!onList.contains(subject.id)) inputNotFoundHandle("暂无操作权限").apply { return false }
+            VisitControlEnum.BLACK_LIST -> if (onList.contains(subject.id)) inputNotFoundHandle("暂无操作权限").apply { return false }
+        }
+        return true
     }
 
     private fun GroupMessageEvent.isGroupMessageAllow(): Boolean =
         when (Global.eventConfig.groupMessageHandleStrategy) {
-            Global.GroupMessageHandleEnum.AT_AND_QUOTE_REPLY -> message.firstIsInstanceOrNull<At>()?.target == bot.id
+            GroupMessageHandleEnum.AT_AND_QUOTE_REPLY -> message.firstIsInstanceOrNull<At>()?.target == bot.id
                     || message.firstIsInstanceOrNull<QuoteReply>()?.source?.fromId == bot.id
-
-            Global.GroupMessageHandleEnum.AT -> message.firstIsInstanceOrNull<At>()?.target == bot.id
-            Global.GroupMessageHandleEnum.QUOTE_REPLY -> message.firstIsInstanceOrNull<QuoteReply>()?.source?.fromId == bot.id
-            Global.GroupMessageHandleEnum.NONE -> false
-            Global.GroupMessageHandleEnum.ALL -> true
+            GroupMessageHandleEnum.AT -> message.firstIsInstanceOrNull<At>()?.target == bot.id
+            GroupMessageHandleEnum.QUOTE_REPLY -> message.firstIsInstanceOrNull<QuoteReply>()?.source?.fromId == bot.id
+            GroupMessageHandleEnum.NONE -> false
+            GroupMessageHandleEnum.ALL -> true
         }
 
-    private suspend fun MessageEvent.inputNotFoundHandle() {
-        if (Global.eventConfig.isWarnOnInputNotFound) reply("未找到对应操作,请检查输入是否正确")
+    private suspend fun MessageEvent.inputNotFoundHandle(msg: String) {
+        if (Global.eventConfig.isWarnOnInputNotFound) reply(msg)
     }
 
 }

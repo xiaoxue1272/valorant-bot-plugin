@@ -1,25 +1,19 @@
-package io.tiangou.cron
+package io.tiangou.command
 
 import io.tiangou.ValorantBotPlugin
+import io.tiangou.checkPermission
+import io.tiangou.cron.CronTaskManager
+import io.tiangou.cron.Task
 import io.tiangou.reply
 import net.mamoe.mirai.console.command.CommandContext
 import net.mamoe.mirai.console.command.CompositeCommand
-import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
+import net.mamoe.mirai.message.data.MessageChainBuilder
 
 object CronTaskCommand : CompositeCommand(
     ValorantBotPlugin,
     "task",
     description = "Valorant Plugin Task Operations"
-
 ) {
-
-    private suspend fun CommandContext.checkPermission(): Boolean {
-        if (!sender.hasPermission(permission)) {
-            sender.reply("暂无权限")
-            return false
-        }
-        return true
-    }
 
     private suspend fun getTaskByString(context: CommandContext, arg: String): Task? {
         val task = CronTaskManager.taskList.find { it::class.simpleName!!.uppercase() == arg.uppercase() }
@@ -27,6 +21,19 @@ object CronTaskCommand : CompositeCommand(
             context.sender.reply("未找到符合的任务,请检查输入")
         }
         return task
+    }
+
+    @SubCommand("list", "all")
+    @Description("定时任务列表")
+    suspend fun list(context: CommandContext) {
+        if (!context.checkPermission()) {
+            return
+        }
+        val builder = MessageChainBuilder()
+        CronTaskManager.taskList.forEach {
+            builder.append("[${it::class.simpleName!!}] [${it.description}] isEnable: ${it.isEnable}\n")
+        }
+        context.sender.reply(builder.build())
     }
 
     @SubCommand("trigger")

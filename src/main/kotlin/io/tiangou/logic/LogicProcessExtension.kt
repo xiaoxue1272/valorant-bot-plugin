@@ -1,5 +1,12 @@
 package io.tiangou.logic
 
+import io.tiangou.api.RiotApi
+import io.tiangou.logic.utils.StoreApiHelper
+import io.tiangou.logic.utils.StoreImageHelper
+import io.tiangou.reply
+import io.tiangou.repository.UserCache
+import net.mamoe.mirai.event.events.MessageEvent
+
 val HELP_LIST_MESSAGE: String by lazy {
     """
     帮助列表
@@ -17,7 +24,8 @@ val HELP_LIST_MESSAGE: String by lazy {
     """.trimIndent()
 }
 
-val ASK_LOCATION_AREA_MESSAGE = """
+val ASK_LOCATION_AREA_MESSAGE by lazy {
+    """
     请输入你想要设置的地区
     
     亚洲
@@ -29,7 +37,18 @@ val ASK_LOCATION_AREA_MESSAGE = """
     
     请输入正确的地区值
     """.trimIndent()
+}
 
+
+internal suspend fun UserCache.loginSuccessfulHandle(event: MessageEvent, authUrl: String) {
+    StoreApiHelper.clean(this)
+    StoreImageHelper.clean(this)
+    riotClientData.flushAccessToken(authUrl)
+    riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
+    riotClientData.puuid = RiotApi.PlayerInfo.execute().sub
+    event.reply("登录成功")
+    isRiotAccountLogin = true
+}
 
 enum class ServerLocationEnum(
     val value: String,

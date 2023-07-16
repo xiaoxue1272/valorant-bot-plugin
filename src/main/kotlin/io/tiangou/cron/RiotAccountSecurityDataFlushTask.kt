@@ -11,6 +11,8 @@ class RiotAccountSecurityDataFlushTask(
     override var isEnable: Boolean
 ) : Task() {
 
+    override val description: String = "Riot账号安全令牌刷新"
+
     override suspend fun execute() {
         log.info("Valorant安全令牌刷新任务,开始")
         UserCacheRepository.getAllUserCache().forEach { entry ->
