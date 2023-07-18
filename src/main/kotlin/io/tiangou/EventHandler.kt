@@ -73,12 +73,13 @@ object EventHandler : SimpleListenerHost() {
 
     private suspend fun MessageEvent.isAllow(): Boolean {
         val onList = when (this) {
-            is GroupMessageEvent ->  {
+            is GroupMessageEvent -> {
                 if (!isGroupMessageAllow()) {
                     return false
                 }
                 VisitConfig.onGroups
             }
+
             is UserMessageEvent -> VisitConfig.onUsers
             else -> emptyList()
         }
@@ -93,6 +94,7 @@ object EventHandler : SimpleListenerHost() {
         when (Global.eventConfig.groupMessageHandleStrategy) {
             GroupMessageHandleEnum.AT_AND_QUOTE_REPLY -> message.firstIsInstanceOrNull<At>()?.target == bot.id
                     || message.firstIsInstanceOrNull<QuoteReply>()?.source?.fromId == bot.id
+
             GroupMessageHandleEnum.AT -> message.firstIsInstanceOrNull<At>()?.target == bot.id
             GroupMessageHandleEnum.QUOTE_REPLY -> message.firstIsInstanceOrNull<QuoteReply>()?.source?.fromId == bot.id
             GroupMessageHandleEnum.NONE -> false

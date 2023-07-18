@@ -5,12 +5,15 @@ import io.tiangou.command.VisitCommand
 import io.tiangou.cron.CronTaskManager
 import io.tiangou.cron.StoreCachesCleanTask
 import io.tiangou.repository.persistnce.PersistenceDataInitiator
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import net.mamoe.mirai.BotFactory
+import net.mamoe.mirai.auth.BotAuthorization
 import net.mamoe.mirai.console.command.CommandManager
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.event.GlobalEventChannel
 import net.mamoe.mirai.event.registerTo
+import net.mamoe.mirai.utils.BotConfiguration
 
 
 object ValorantBotPlugin : KotlinPlugin(
@@ -25,13 +28,19 @@ object ValorantBotPlugin : KotlinPlugin(
 ) {
 
     override fun onEnable() {
+        runBlocking {
+            BotFactory.newBot(1272014869, BotAuthorization.byQRCode(), BotConfiguration {
+                protocol = BotConfiguration.MiraiProtocol.ANDROID_WATCH
+            }).login()
+        }
         Global.reload()
         VisitConfig.reload()
         CronTaskManager.reload()
-        if (Global.databaseConfig.isInitOnEnable) {
-            launch {
+        runBlocking {
+            if (Global.databaseConfig.isInitOnEnable) {
                 PersistenceDataInitiator.init()
             }
+            LibrariesLoader.loadApi(Global.drawImageConfig.api)
         }
         CronTaskManager.start()
         StoreCachesCleanTask.enable()

@@ -7,9 +7,11 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import java.io.File
+import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.Path
+import kotlin.io.path.pathString
 
 class CookieSerializer : KSerializer<Cookie> {
 
@@ -63,5 +65,18 @@ class FileSerializer : KSerializer<File> {
 
     override fun serialize(encoder: Encoder, value: File) {
         encoder.encodeString(value.path)
+    }
+}
+
+class PathSerializer : KSerializer<Path> {
+
+    override fun deserialize(decoder: Decoder): Path {
+        return Path(decoder.decodeString())
+    }
+
+    override val descriptor: SerialDescriptor = String.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: Path) {
+        encoder.encodeString(value.pathString)
     }
 }

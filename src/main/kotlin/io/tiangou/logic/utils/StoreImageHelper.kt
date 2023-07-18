@@ -82,6 +82,7 @@ internal sealed interface StoreImageHelper {
                     }
                 makeImageSnapshot().encodeToData()!!.bytes
             }
+
         }
 
         fun getBackgroundFile(userCache: UserCache) =
@@ -192,7 +193,7 @@ class AccessoryStore(private val userCache: UserCache) : StoreImageHelper {
 
             AccessoryItemType.PENDANT -> {
                 val buddieLevel = BuddieLevel(itemID).queryOne()
-                buddieLevel?.buddieUuid.let { Buddie(it) }.queryOne()
+                Buddie(buddieLevel?.buddieUuid).queryOne()
                     ?.apply { itemUrl = displayIcon; itemName = displayName }
             }
 

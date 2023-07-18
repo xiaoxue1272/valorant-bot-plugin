@@ -4,7 +4,7 @@ import io.tiangou.*
 import net.mamoe.mirai.console.command.CommandContext
 import net.mamoe.mirai.console.command.CompositeCommand
 
-object VisitCommand: CompositeCommand(
+object VisitCommand : CompositeCommand(
     ValorantBotPlugin,
     "visit",
     description = "Valorant Plugin Visit Operations"
@@ -43,11 +43,13 @@ object VisitCommand: CompositeCommand(
         if (!context.checkPermission()) {
             return
         }
-        context.sender.reply("""
+        context.sender.reply(
+            """
             controlType: ${VisitConfig.controlType}
             onUsers: ${VisitConfig.onUsers.joinToString("\n")}
             onGroups: ${VisitConfig.onGroups.joinToString("\n")}
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 
     @SubCommand("change")
@@ -56,7 +58,7 @@ object VisitCommand: CompositeCommand(
         if (!context.checkPermission()) {
             return
         }
-        VisitConfig.controlType = when(VisitConfig.controlType) {
+        VisitConfig.controlType = when (VisitConfig.controlType) {
             VisitControlEnum.WHITE_LIST -> VisitControlEnum.BLACK_LIST
             VisitControlEnum.BLACK_LIST -> VisitControlEnum.WHITE_LIST
         }

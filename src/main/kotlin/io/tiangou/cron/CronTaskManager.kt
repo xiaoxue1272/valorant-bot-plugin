@@ -55,6 +55,9 @@ sealed class Task : CoroutineScope {
     abstract val description: String
 
     @Transient
+    open val timeZone: TimeZone = TimeZone.getTimeZone(ZoneId.of("GMT+8"))
+
+    @Transient
     final override val coroutineContext: CoroutineContext =
         Global.coroutineScope.coroutineContext + CoroutineName("Task :${this::class::simpleName}")
 
@@ -67,7 +70,7 @@ sealed class Task : CoroutineScope {
     open fun enable() {
         cronPattern = CronPattern.of(cron)
         job = launch {
-            val calendar = Calendar.getInstance(TimeZone.getTimeZone(ZoneId.of("CTT")))
+            val calendar = Calendar.getInstance(timeZone)
             while (true) {
                 val nowTimeMillis = getTimeMillis()
                 val waitOnExecuteTimeMillis =
@@ -93,7 +96,13 @@ sealed class Task : CoroutineScope {
     abstract suspend fun execute()
 
     suspend fun executeRunCaching() =
-        runCatching { execute() }.onFailure { log.warning("Threw an exception when task was execute", it) }
+        runCatching {
+            log.info("$description, 开始")
+            execute()
+            log.info("$description, 结束")
+        }.onFailure {
+            log.warning("$description, 执行时发生异常:", it)
+        }
 
 
 }

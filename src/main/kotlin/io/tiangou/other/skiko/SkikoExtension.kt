@@ -2,7 +2,6 @@ package io.tiangou.other.skiko
 
 import org.jetbrains.skia.*
 
-
 inline fun <reified T> Surface.afterClose(block: Surface.() -> T): T {
     val result = block(this)
     close()
@@ -129,3 +128,4 @@ internal fun rgbaConvert(str: String): Int {
         else -> throw IllegalArgumentException("str is not RGB or RGBA format")
     }
 }
+

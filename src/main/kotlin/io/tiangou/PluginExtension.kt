@@ -1,13 +1,23 @@
+@file:UseSerializers(PathSerializer::class)
+
 package io.tiangou
 
 import io.tiangou.command.CronTaskCommand
+import io.tiangou.serializer.PathSerializer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.json.Json
+import net.mamoe.mirai.Bot
 import net.mamoe.mirai.console.command.CommandContext
 import net.mamoe.mirai.console.command.CommandSender
-import net.mamoe.mirai.console.data.*
+import net.mamoe.mirai.console.data.AutoSavePluginConfig
+import net.mamoe.mirai.console.data.ReadOnlyPluginConfig
+import net.mamoe.mirai.console.data.ValueDescription
+import net.mamoe.mirai.console.data.value
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
+import net.mamoe.mirai.console.plugin.PluginManager
+import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.contact.Group
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.events.MessageEvent
@@ -15,6 +25,7 @@ import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.message.data.Image.Key.isUploaded
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import java.io.File
+import java.nio.file.Path
 
 fun MessageChain.toText() =
     MessageChainBuilder().apply { addAll(this@toText.filterIsInstance<PlainText>()) }.asMessageChain().content.trim()
@@ -55,20 +66,21 @@ suspend fun CommandSender.reply(message: Message) {
     } else sendMessage(message)
 }
 
-suspend fun MessageEvent.uploadImage(bytes: ByteArray) {
-    var uploadImage =
-        subject.uploadImage(bytes.toExternalResource().toAutoCloseable())
+suspend fun uploadImage(bytes: ByteArray, contact: Contact, bot: Bot): Image? {
+    var uploadImage = contact.uploadImage(bytes.toExternalResource().toAutoCloseable())
     repeat(2) {
         if (!uploadImage.isUploaded(bot)) {
-            uploadImage = subject
-                .uploadImage(bytes.toExternalResource().toAutoCloseable())
+            uploadImage =
+                contact.uploadImage(bytes.toExternalResource().toAutoCloseable())
         }
     }
-    if (uploadImage.isUploaded(bot)) {
-        reply(MessageChainBuilder().append(uploadImage).build())
-    } else {
-        reply("图片上传失败,请稍候重试")
-    }
+    return uploadImage.isUploaded(bot).takeIf { it }?.let { uploadImage }
+}
+
+suspend fun MessageEvent.uploadImage(bytes: ByteArray) {
+    uploadImage(bytes, subject, bot)?.apply {
+        reply(MessageChainBuilder().append(this).build())
+    } ?: reply("图片上传失败,请稍候重试")
 }
 
 suspend fun CommandContext.checkPermission(): Boolean {
@@ -81,7 +93,6 @@ suspend fun CommandContext.checkPermission(): Boolean {
 
 object Global : ReadOnlyPluginConfig("plugin-config") {
 
-    @property:JvmStatic
     val json = Json {
         encodeDefaults = true
         useAlternativeNames = false
@@ -119,6 +130,18 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
     )
     val databaseConfig: DatabaseConfigData by value(DatabaseConfigData())
 
+    @ValueDescription(
+        """
+        绘图相关配置
+        api: 
+            SKIKO: 使用Skiko进行绘图(某些CPU架构可能不支持)
+            AWT: 使用Java内置GUI进行绘图
+            默认为: SKIKO
+        libDictionary: GUI库类存放路径(目前仅SKIKO使用,AWT不使用)
+    """
+    )
+    val drawImageConfig: DrawImageConfig by value(DrawImageConfig())
+
     @Serializable
     data class EventConfigData(
         val isWarnOnInputNotFound: Boolean = true,
@@ -134,15 +157,23 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
         val isInitOnEnable: Boolean = true
     )
 
+    @Serializable
+    data class DrawImageConfig(
+        val api: DrawImageApiEnum = DrawImageApiEnum.SKIKO,
+        val libDictionary: Path = PluginManager.pluginLibrariesPath
+    )
+
 }
 
-object VisitConfig: AutoSavePluginConfig("visit-config") {
+object VisitConfig : AutoSavePluginConfig("visit-config") {
 
-    @ValueDescription("""
+    @ValueDescription(
+        """
         访问控制(比如说插件指定插件仅对某些人/群内生效, 或者仅排除掉某些用户/群)
             WHITE_LIST: 白名单模式 (仅onGroup, onUsers中配置的群/用户可以使用本插件)
             BLACK_LIST: 黑名单模式 (仅onGroup, onUsers中配置的群/用户不可以使用本插件)
-    """)
+    """
+    )
     var controlType: VisitControlEnum by value(VisitControlEnum.BLACK_LIST)
 
     @ValueDescription("访问控制作用的群集合 默认为空")
@@ -165,6 +196,12 @@ enum class GroupMessageHandleEnum {
 enum class VisitControlEnum {
     WHITE_LIST,
     BLACK_LIST
+}
+
+@Serializable
+enum class DrawImageApiEnum {
+    AWT,
+    SKIKO,
 }
 
 open class ValorantRuntimeException(override val message: String?) : RuntimeException()

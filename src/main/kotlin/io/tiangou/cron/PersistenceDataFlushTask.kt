@@ -11,14 +11,6 @@ class PersistenceDataFlushTask(
 
     override val description: String = "Valorant数据更新"
 
-    override suspend fun execute() {
-        log.info("Valorant皮肤库数据刷新任务,开始")
-        runCatching {
-            PersistenceDataInitiator.init()
-        }.onFailure {
-            log.warning("Valorant皮肤库数据刷新任务,执行中发生异常,异常信息:", it)
-        }
-        log.info("Valorant皮肤库数据刷新任务,结束")
-    }
+    override suspend fun execute() = PersistenceDataInitiator.init()
 
 }
