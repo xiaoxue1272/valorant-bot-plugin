@@ -4,6 +4,7 @@ import cn.hutool.cron.pattern.CronPattern
 import cn.hutool.cron.pattern.CronPatternUtil
 import io.ktor.util.date.*
 import io.tiangou.Global
+import io.tiangou.serializer.TimeZoneSerializer
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -54,8 +55,8 @@ sealed class Task : CoroutineScope {
 
     abstract val description: String
 
-    @Transient
-    open val timeZone: TimeZone = TimeZone.getTimeZone(ZoneId.of("GMT+8"))
+    @Serializable(TimeZoneSerializer::class)
+    open val timeZone: TimeZone = TimeZone.getTimeZone(ZoneId.of("GMT+08:00"))
 
     @Transient
     final override val coroutineContext: CoroutineContext =
@@ -70,9 +71,9 @@ sealed class Task : CoroutineScope {
     open fun enable() {
         cronPattern = CronPattern.of(cron)
         job = launch {
-            val calendar = Calendar.getInstance(timeZone)
             while (true) {
-                val nowTimeMillis = getTimeMillis()
+                val calendar = Calendar.getInstance(timeZone)
+                val nowTimeMillis = calendar.timeInMillis
                 val waitOnExecuteTimeMillis =
                     CronPatternUtil.nextDateAfter(cronPattern, calendar.time, true).time - nowTimeMillis
                 delay(waitOnExecuteTimeMillis)

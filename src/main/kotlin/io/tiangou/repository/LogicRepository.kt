@@ -49,6 +49,12 @@ val DEFAULT_LOGIC_MAP: Map<String, List<LogicProcessor<MessageEvent>>> by lazy {
         "查询配件商店" to listOf(
             CheckRiotStatusAndSettingProcessor,
             QueryPlayerAccessoryStoreProcessor
+        ),
+        "设置每日商店推送地点" to listOf(
+            CheckRiotStatusAndSettingProcessor,
+            CheckIsBotFriendProcessor,
+            AskDailyStorePushLocationProcessor,
+            ParseDailyStorePushLocationProcessor
         )
     )
 }

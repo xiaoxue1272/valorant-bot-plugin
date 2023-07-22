@@ -1,4 +1,4 @@
-package io.tiangou.other.skiko
+package io.tiangou.other.image.skiko
 
 import org.jetbrains.skia.*
 
@@ -104,7 +104,9 @@ internal fun Surface.Companion.makeByImageAndProportion(image: Image, wp: Int, h
         width = image.height / hp * wp
         height = image.height
     }
-    return makeRasterN32Premul(width, height)
+    return makeRasterN32Premul(width, height).apply {
+        canvas.writeImageRect(image, (width - image.width) / 2f, (height - image.height) / 2f)
+    }
 }
 
 internal fun rgbaConvert(str: String): Int {

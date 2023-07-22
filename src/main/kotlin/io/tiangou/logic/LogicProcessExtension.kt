@@ -1,10 +1,11 @@
 package io.tiangou.logic
 
 import io.tiangou.api.RiotApi
-import io.tiangou.logic.utils.StoreApiHelper
-import io.tiangou.logic.utils.StoreImageHelper
+import io.tiangou.logic.image.utils.ImageHelper
+import io.tiangou.logic.image.utils.StoreApiHelper
 import io.tiangou.reply
 import io.tiangou.repository.UserCache
+import kotlinx.coroutines.runBlocking
 import net.mamoe.mirai.event.events.MessageEvent
 
 val HELP_LIST_MESSAGE: String by lazy {
@@ -21,6 +22,8 @@ val HELP_LIST_MESSAGE: String by lazy {
     5.自定义商店背景图
     
     6.查询配件商店
+    
+    7.设置每日商店推送地点
     """.trimIndent()
 }
 
@@ -41,13 +44,17 @@ val ASK_LOCATION_AREA_MESSAGE by lazy {
 
 
 internal suspend fun UserCache.loginSuccessfulHandle(event: MessageEvent, authUrl: String) {
-    StoreApiHelper.clean(this)
-    StoreImageHelper.clean(this)
-    riotClientData.flushAccessToken(authUrl)
-    riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
-    riotClientData.puuid = RiotApi.PlayerInfo.execute().sub
+    synchronized(this) {
+        StoreApiHelper.clean(this)
+        ImageHelper.clean(this)
+        riotClientData.flushAccessToken(authUrl)
+        runBlocking {
+            riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
+            riotClientData.puuid = RiotApi.PlayerInfo.execute().sub
+        }
+        isRiotAccountLogin = true
+    }
     event.reply("登录成功")
-    isRiotAccountLogin = true
 }
 
 enum class ServerLocationEnum(

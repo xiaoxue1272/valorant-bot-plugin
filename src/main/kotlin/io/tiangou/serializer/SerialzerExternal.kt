@@ -8,6 +8,8 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import java.io.File
 import java.nio.file.Path
+import java.time.ZoneId
+import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.Path
@@ -78,5 +80,18 @@ class PathSerializer : KSerializer<Path> {
 
     override fun serialize(encoder: Encoder, value: Path) {
         encoder.encodeString(value.pathString)
+    }
+}
+
+class TimeZoneSerializer : KSerializer<TimeZone> {
+
+    override fun deserialize(decoder: Decoder): TimeZone {
+        return TimeZone.getTimeZone(ZoneId.of(decoder.decodeString()))
+    }
+
+    override val descriptor: SerialDescriptor = String.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: TimeZone) {
+        encoder.encodeString(value.toZoneId().id)
     }
 }

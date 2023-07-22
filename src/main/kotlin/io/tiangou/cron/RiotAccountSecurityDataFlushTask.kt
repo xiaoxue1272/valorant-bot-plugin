@@ -15,12 +15,14 @@ class RiotAccountSecurityDataFlushTask(
 
     override suspend fun execute() {
         UserCacheRepository.getAllUserCache().forEach { entry ->
-            entry.value.takeIf { it.isRiotAccountLogin }?.riotClientData?.actions {
-                runCatching {
-                    flushAccessToken(RiotApi.CookieReAuth.execute())
-                    flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
-                }.onFailure {
-                    log.warning("Valorant安全令牌刷新任务,QQ:[${entry.key}],异常信息:", it)
+            entry.value.takeIf { it.isRiotAccountLogin }?.synchronous {
+                riotClientData.actions {
+                    runCatching {
+                        flushAccessToken(RiotApi.CookieReAuth.execute())
+                        flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
+                    }.onFailure {
+                        log.warning("Valorant安全令牌刷新任务,QQ:[${entry.key}],异常信息:", it)
+                    }
                 }
             }
         }

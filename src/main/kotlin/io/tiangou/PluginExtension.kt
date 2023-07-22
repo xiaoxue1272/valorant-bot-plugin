@@ -19,6 +19,7 @@ import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermiss
 import net.mamoe.mirai.console.plugin.PluginManager
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.contact.Group
+import net.mamoe.mirai.contact.User
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.events.MessageEvent
 import net.mamoe.mirai.message.data.*
@@ -42,6 +43,36 @@ suspend fun MessageEvent.reply(message: Message) {
         is GroupMessageEvent -> group.sendMessage(MessageChainBuilder().append(At(sender)).append(message).build())
         else -> sender.sendMessage(message)
     }
+}
+
+suspend fun Contact.reply(message: String, target: User) {
+    when (this) {
+        is Group -> sendMessage(MessageChainBuilder().append(At(target)).append(message).build())
+        else -> sendMessage(message)
+    }
+}
+
+suspend fun Contact.reply(message: Message, target: User) {
+    when (this) {
+        is Group -> sendMessage(MessageChainBuilder().append(At(target)).append(message).build())
+        else -> sendMessage(message)
+    }
+}
+
+fun isVisitAllow(qq: Long, bot: Bot): Boolean {
+    if (bot.getGroup(qq) == null) {
+        return false
+    }
+    when (VisitConfig.controlType) {
+        VisitControlEnum.WHITE_LIST -> if (!VisitConfig.onGroups.contains(qq)) {
+            return false
+        }
+
+        VisitControlEnum.BLACK_LIST -> if (VisitConfig.onGroups.contains(qq)) {
+            return false
+        }
+    }
+    return true
 }
 
 suspend fun CommandSender.reply(message: String) {
@@ -117,6 +148,7 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
         waitTimeoutMinutes: 指令等待输入超时时间,请不要设置太短或太长,分为单位,默认5分钟
         autoAcceptFriendRequest: 是否自动接受好友申请
         autoAcceptGroupRequest: 是否自动接受群邀请
+        exitLogicCommand: 退出指令执行的关键字 默认为[退出]
     """
     )
     val eventConfig: EventConfigData by value(EventConfigData())
@@ -148,7 +180,8 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
         val groupMessageHandleStrategy: GroupMessageHandleEnum = GroupMessageHandleEnum.AT_AND_QUOTE_REPLY,
         val waitTimeoutMinutes: Int = 5,
         val autoAcceptFriendRequest: Boolean = true,
-        val autoAcceptGroupRequest: Boolean = true
+        val autoAcceptGroupRequest: Boolean = true,
+        val exitLogicCommand: String = "退出"
     )
 
     @Serializable

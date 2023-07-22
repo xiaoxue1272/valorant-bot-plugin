@@ -1,8 +1,8 @@
 package io.tiangou.cron
 
 import io.ktor.util.date.*
-import io.tiangou.logic.utils.StoreApiHelper
-import io.tiangou.logic.utils.StoreImageHelper
+import io.tiangou.logic.image.utils.ImageHelper
+import io.tiangou.logic.image.utils.StoreApiHelper
 import io.tiangou.repository.UserCacheRepository
 import java.time.ZoneId
 import java.util.*
@@ -25,11 +25,11 @@ object StoreCachesCleanTask : Task() {
 
     override suspend fun execute() {
         UserCacheRepository.getAllUserCache().forEach {
-            synchronized(it) {
+            it.value.synchronous {
                 StoreApiHelper.storeFronts.clear()
-                StoreImageHelper.cacheSkinsPanelLayoutImages.clear()
+                ImageHelper.cacheSkinsPanelLayoutImages.clear()
                 if (GMTDate().dayOfWeek == WeekDay.WEDNESDAY) {
-                    StoreImageHelper.cacheAccessoryStoreImages.clear()
+                    ImageHelper.cacheAccessoryStoreImages.clear()
                 }
             }
         }

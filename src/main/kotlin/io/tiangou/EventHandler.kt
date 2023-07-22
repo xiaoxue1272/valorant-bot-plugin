@@ -35,6 +35,10 @@ object EventHandler : SimpleListenerHost() {
             return
         }
         UserCacheRepository[sender.id].apply {
+            if (Global.eventConfig.exitLogicCommand == message.toText()) {
+                exitLogic()
+                return
+            }
             logicSelector.run {
                 if (processJob != null && processJob!!.isActive) {
                     reply("正在执行中,请稍候")
@@ -45,7 +49,7 @@ object EventHandler : SimpleListenerHost() {
                         while (true) {
                             val logicProcessor = loadLogic(this@onMessage.message.toText())
                                 ?: inputNotFoundHandle("未找到对应操作,请检查输入是否正确").let { return@launch }
-                            if (!logicProcessor.process(this@onMessage, this@apply)) break
+                            if (!logicProcessor.synchronousProcess(this@onMessage, this@apply)) break
                         }
                     }.onFailure {
                         isRunningError = true

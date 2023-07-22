@@ -9,9 +9,9 @@ import io.tiangou.api.data.AuthCookiesRequest
 import io.tiangou.api.data.AuthRequest
 import io.tiangou.api.data.AuthResponse
 import io.tiangou.api.data.MultiFactorAuthRequest
-import io.tiangou.logic.utils.GenerateImageType
-import io.tiangou.logic.utils.StoreApiHelper
-import io.tiangou.logic.utils.StoreImageHelper
+import io.tiangou.logic.image.utils.GenerateImageType
+import io.tiangou.logic.image.utils.ImageHelper
+import io.tiangou.logic.image.utils.StoreApiHelper
 import io.tiangou.other.http.actions
 import io.tiangou.other.http.client
 import io.tiangou.repository.UserCache
@@ -30,6 +30,9 @@ import net.mamoe.mirai.message.data.firstIsInstanceOrNull
 @Serializable
 sealed interface LogicProcessor<T : MessageEvent> {
     suspend fun process(event: MessageEvent, userCache: UserCache): Boolean
+
+    fun synchronousProcess(event: MessageEvent, userCache: UserCache): Boolean =
+        userCache.synchronous { process(event, userCache) }
 }
 
 @Serializable
@@ -155,7 +158,7 @@ object SaveLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
                 userCache.riotClientData.shard = it.shard
                 userCache.riotClientData.region = it.region
                 event.reply("设置成功")
-                StoreImageHelper.clean(userCache)
+                ImageHelper.clean(userCache)
                 StoreApiHelper.clean(userCache)
                 return false
             }
@@ -197,7 +200,7 @@ object QueryPlayerDailyStoreProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
         event.reply("正在查询每日商店,请稍等")
-        val skinsPanelLayoutImage = StoreImageHelper.get(userCache, GenerateImageType.SKINS_PANEL_LAYOUT)
+        val skinsPanelLayoutImage = ImageHelper.get(userCache, GenerateImageType.SKINS_PANEL_LAYOUT)
         event.uploadImage(skinsPanelLayoutImage)
         return false
     }
@@ -240,7 +243,7 @@ object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
                 .apply { writeBytes(client.get(downloadUrl).readBytes()) }
             event.reply("上传成功")
         }
-        StoreImageHelper.clean(userCache)
+        ImageHelper.clean(userCache)
         return false
     }
 }
@@ -250,8 +253,64 @@ object QueryPlayerAccessoryStoreProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
         event.reply("正在查询配件商店,请稍等")
-        val accessoryStoreImage = StoreImageHelper.get(userCache, GenerateImageType.ACCESSORY_STORE)
+        val accessoryStoreImage = ImageHelper.get(userCache, GenerateImageType.ACCESSORY_STORE)
         event.uploadImage(accessoryStoreImage)
+        return false
+    }
+}
+
+@Serializable
+object AskDailyStorePushLocationProcessor : LogicProcessor<MessageEvent> {
+
+    override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
+        event.reply(
+            """
+            请输入你想要指定的推送地点
+            
+            this : 代表当前会话窗口
+            [群号]: 推送到QQ群
+            
+        """.trimIndent()
+        )
+        return false
+    }
+}
+
+@Serializable
+object ParseDailyStorePushLocationProcessor : LogicProcessor<MessageEvent> {
+
+    suspend fun MessageEvent.isVisitAllow(qq: Long): Boolean {
+        if (bot.getGroup(qq) == null) {
+            reply("无法设置群[$qq]为推送地点,Bot并未在指定群中")
+            return false
+        }
+        when (VisitConfig.controlType) {
+            VisitControlEnum.WHITE_LIST -> if (!VisitConfig.onGroups.contains(qq)) {
+                reply("群[$qq]暂无访问权限")
+                return false
+            }
+
+            VisitControlEnum.BLACK_LIST -> if (VisitConfig.onGroups.contains(qq)) {
+                reply("群[$qq]暂无访问权限")
+                return false
+            }
+        }
+        return true
+    }
+
+    override suspend fun process(event: MessageEvent, userCache: UserCache): Boolean {
+        val text = event.message.toText()
+        if (text.uppercase() == "THIS") {
+            val isLocationEnabled = !(userCache.dailyStorePushLocations[event.subject.id] ?: false)
+            userCache.dailyStorePushLocations[event.subject.id] = isLocationEnabled
+            event.reply("已将当前地点的推送状态设置为:${if (isLocationEnabled) "启用" else "停用"}")
+        } else if ("\\d+".toRegex().matches(text) && event.isVisitAllow(text.toLong())) {
+            val isLocationEnabled = !(userCache.dailyStorePushLocations[text.toLong()] ?: false)
+            userCache.dailyStorePushLocations[text.toLong()] = isLocationEnabled
+            event.reply("已将指定群[$text]的推送状态设置为:${if (isLocationEnabled) "启用" else "停用"}")
+        } else {
+            event.reply("输入不正确,无法解析为正确的推送地点")
+        }
         return false
     }
 }

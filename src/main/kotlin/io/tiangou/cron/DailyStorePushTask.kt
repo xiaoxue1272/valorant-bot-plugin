@@ -1,11 +1,15 @@
 package io.tiangou.cron
 
-import io.tiangou.logic.utils.GenerateImageType
-import io.tiangou.logic.utils.StoreImageHelper
+import io.tiangou.isVisitAllow
+import io.tiangou.logic.image.utils.GenerateImageType
+import io.tiangou.logic.image.utils.ImageHelper
+import io.tiangou.reply
+import io.tiangou.repository.UserCache
 import io.tiangou.repository.UserCacheRepository
 import io.tiangou.uploadImage
 import kotlinx.serialization.Serializable
 import net.mamoe.mirai.Bot
+import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.contact.User
 import net.mamoe.mirai.message.data.MessageChainBuilder
 import java.time.LocalDate
@@ -21,40 +25,53 @@ class DailyStorePushTask(
     override val description: String = "每日商店推送"
 
     override suspend fun execute() {
-        val date = DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDate.now())
+        val date = DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDate.now(timeZone.toZoneId()))
         val onlineBots = Bot.instances.filter { it.isOnline }
         for (entry in UserCacheRepository.getAllUserCache()) {
-            if (entry.value.subscribeDailyStore) {
-                val (bot, user) = onlineBots.findBotAsUserFriend(entry.key) ?: continue
-                runCatching {
-                    val skinsPanelLayoutImage = StoreImageHelper.get(entry.value, GenerateImageType.SKINS_PANEL_LAYOUT)
-                    uploadImage(skinsPanelLayoutImage, user, bot)?.apply {
-                        user.sendMessage(
-                            MessageChainBuilder()
-                                .append("$date 今日商店为:\n")
-                                .append(this)
-                                .build()
-                        )
+            val userCache = entry.value
+            if (userCache.subscribeDailyStore) {
+                val locations = userCache.filterPushLocations(entry.key, onlineBots)
+                locations.takeIf { it.isNotEmpty() }
+                    ?.runCatching {
+                        val skinsPanelLayoutImage =
+                            ImageHelper.get(userCache, GenerateImageType.SKINS_PANEL_LAYOUT)
+                        locations.forEach { location ->
+                            location.contacts.forEach { contact ->
+                                uploadImage(skinsPanelLayoutImage, contact, location.bot)?.apply {
+                                    contact.reply(
+                                        MessageChainBuilder()
+                                            .append("$date\n 今日商店为:\n")
+                                            .append(this)
+                                            .build(),
+                                        location.user
+                                    )
+                                }
+                            }
+                        }
+                    }?.onFailure { throwable ->
+                        log.warning("QQ:[${entry.key}],推送每日商店时异常,异常信息:", throwable)
+                        locations.first().user.sendMessage("推送每日商店时出错,错误信息:[$throwable]")
                     }
-                }.onFailure {
-                    log.warning("QQ:[${entry.key}],推送每日商店内容异常,异常信息:", it)
-                    user.sendMessage("推送每日商店失败,失败信息:[$it]")
+            }
+        }
+    }
+
+    private fun UserCache.filterPushLocations(userQQ: Long, onlineBots: List<Bot>): List<BotPushLocation> {
+        return mutableListOf<BotPushLocation>().apply {
+            for (bot in onlineBots) {
+                val user = bot.getFriend(userQQ) ?: bot.getStranger(userQQ)
+                if (user != null) {
+                    dailyStorePushLocations.filter { it.value }.mapNotNull { location ->
+                        (bot.getGroup(location.key) ?: bot.getFriend(location.key) ?: bot.getStranger(location.key))
+                            ?.takeIf { isVisitAllow(it.id, bot) }
+                    }.takeIf { it.isNotEmpty() }?.let {
+                        add(BotPushLocation(bot, user, it))
+                    }
                 }
             }
         }
     }
 
-    private fun List<Bot>.findBotAsUserFriend(qq: Long): BotUserRelation? {
-        for (bot in this) {
-            val user = bot.getFriend(qq) ?: bot.getStranger(qq)
-            if (user != null) {
-                return BotUserRelation(bot, user)
-            }
-        }
-        log.info("QQ:[$qq],未在机器人联系列表中找到用户,请添加机器人为好友")
-        return null
-    }
-
-    data class BotUserRelation(val bot: Bot, val user: User)
+    data class BotPushLocation(val bot: Bot, val user: User, val contacts: List<Contact>)
 
 }

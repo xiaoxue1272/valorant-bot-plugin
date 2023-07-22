@@ -1,4 +1,4 @@
-package io.tiangou.logic.utils
+package io.tiangou.logic.image.utils
 
 import io.tiangou.api.RiotApi
 import io.tiangou.api.data.StoreFrontResponse
@@ -30,7 +30,7 @@ object StoreApiHelper {
 
     fun clean(userCache: UserCache) {
         userCache.riotClientData.puuid?.let {
-            synchronized(userCache) {
+            userCache.synchronous {
                 storeFronts.remove(it)
             }
         }

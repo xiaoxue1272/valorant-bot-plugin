@@ -47,9 +47,9 @@ object CronTaskCommand : CompositeCommand(
 
     @SubCommand("update")
     @Description("更新定时任务cron表达式")
-    suspend fun update(context: CommandContext, arg: String) {
+    suspend fun update(context: CommandContext, arg: String, newCron: String) {
         getTaskByString(context, arg)?.apply {
-            cron = arg
+            cron = newCron
             if (isEnable) {
                 disable()
                 enable()
