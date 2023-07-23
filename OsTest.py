@@ -1,5 +1,7 @@
 import platform
 
+# 这个脚本可以用来测试当前架构是否支持skiko
+
 if __name__ == '__main__':
     # name
     system = platform.system().upper()

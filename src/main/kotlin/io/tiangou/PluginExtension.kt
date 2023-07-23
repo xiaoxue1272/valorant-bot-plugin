@@ -192,7 +192,7 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
 
     @Serializable
     data class DrawImageConfig(
-        val api: DrawImageApiEnum = DrawImageApiEnum.SKIKO,
+        val api: DrawImageApiEnum = DrawImageApiEnum.AWT,
         val libDictionary: Path = PluginManager.pluginLibrariesPath
     )
 
