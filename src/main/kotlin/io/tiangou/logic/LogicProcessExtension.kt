@@ -44,16 +44,12 @@ val ASK_LOCATION_AREA_MESSAGE by lazy {
 
 
 internal suspend fun UserCache.loginSuccessfulHandle(event: MessageEvent, authUrl: String) {
-    synchronized(this) {
-        StoreApiHelper.clean(this)
-        ImageHelper.clean(this)
-        riotClientData.flushAccessToken(authUrl)
-        runBlocking {
-            riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
-            riotClientData.puuid = RiotApi.PlayerInfo.execute().sub
-        }
-        isRiotAccountLogin = true
-    }
+    StoreApiHelper.clean(this)
+    ImageHelper.clean(this)
+    riotClientData.flushAccessToken(authUrl)
+    riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
+    riotClientData.puuid = RiotApi.PlayerInfo.execute().sub
+    isRiotAccountLogin = true
     event.reply("登录成功")
 }
 
