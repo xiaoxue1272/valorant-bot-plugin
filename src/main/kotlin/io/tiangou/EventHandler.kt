@@ -76,20 +76,14 @@ object EventHandler : SimpleListenerHost() {
     }
 
     private suspend fun MessageEvent.isAllow(): Boolean {
-        val onList = when (this) {
-            is GroupMessageEvent -> {
-                if (!isGroupMessageAllow()) {
-                    return false
-                }
-                VisitConfig.onGroups
+        if (this is GroupMessageEvent) {
+            if (!isGroupMessageAllow()) {
+                return false
             }
-
-            is UserMessageEvent -> VisitConfig.onUsers
-            else -> emptyList()
         }
         when (VisitConfig.controlType) {
-            VisitControlEnum.WHITE_LIST -> if (!onList.contains(subject.id)) inputNotFoundHandle("暂无操作权限").apply { return false }
-            VisitControlEnum.BLACK_LIST -> if (onList.contains(subject.id)) inputNotFoundHandle("暂无操作权限").apply { return false }
+            VisitControlEnum.WHITE_LIST -> if (!subject.getVisitControlList().contains(subject.id)) inputNotFoundHandle("暂无操作权限").apply { return false }
+            VisitControlEnum.BLACK_LIST -> if (subject.getVisitControlList().contains(subject.id)) inputNotFoundHandle("暂无操作权限").apply { return false }
         }
         return true
     }

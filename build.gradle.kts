@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.tiangou.valobot"
-version = "0.6.1"
+version = "0.6.2"
 
 val kotlinVersion = "1.8.20"
 val ktorVersion = "2.2.4"

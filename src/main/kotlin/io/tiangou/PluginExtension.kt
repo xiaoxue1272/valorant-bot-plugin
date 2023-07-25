@@ -60,19 +60,21 @@ suspend fun Contact.reply(message: Message, target: User) {
 }
 
 fun isVisitAllow(qq: Long, bot: Bot): Boolean {
-    if (bot.getGroup(qq) == null) {
-        return false
-    }
+    val contact: Contact = bot.getGroup(qq) ?: bot.getFriend(qq) ?: bot.getStranger(qq) ?: return false
     when (VisitConfig.controlType) {
-        VisitControlEnum.WHITE_LIST -> if (!VisitConfig.onGroups.contains(qq)) {
+        VisitControlEnum.WHITE_LIST -> if (!contact.getVisitControlList().contains(qq)) {
             return false
         }
-
-        VisitControlEnum.BLACK_LIST -> if (VisitConfig.onGroups.contains(qq)) {
+        VisitControlEnum.BLACK_LIST -> if (contact.getVisitControlList().contains(qq)) {
             return false
         }
     }
     return true
+}
+
+fun Contact.getVisitControlList() = when(this) {
+    is Group -> VisitConfig.onGroups
+    else -> VisitConfig.onUsers
 }
 
 suspend fun CommandSender.reply(message: String) {
