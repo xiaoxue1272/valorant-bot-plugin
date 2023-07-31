@@ -22,16 +22,10 @@ val DEFAULT_LOGIC_MAP: Map<String, List<LogicProcessor<MessageEvent>>> by lazy {
     mapOf(
         "帮助" to listOf(HelpListLogicProcessor),
         "账号登录" to listOf(
-            AskRiotUsernameLogicProcessor,
-            SaveRiotUsernameLogicProcessor,
-            AskRiotPasswordLogicProcessor,
-            SaveRiotPasswordLogicProcessor,
             LoginRiotAccountLogicProcessor,
-            VerifyRiotAccountLogicProcessor
         ),
         "设置地区" to listOf(
-            AskLocationAreaLogicProcessor,
-            SaveLocationShardLogicProcessor,
+            ChangeLocationShardLogicProcessor,
         ),
         "查询商店" to listOf(
             CheckRiotStatusAndSettingProcessor,
@@ -43,18 +37,21 @@ val DEFAULT_LOGIC_MAP: Map<String, List<LogicProcessor<MessageEvent>>> by lazy {
             SubscribeTaskDailyStoreProcessor
         ),
         "自定义商店背景图" to listOf(
-            TellCustomBackgroundCanUploadProcessor,
             UploadCustomBackgroundProcessor
         ),
         "查询配件商店" to listOf(
             CheckRiotStatusAndSettingProcessor,
             QueryPlayerAccessoryStoreProcessor
         ),
-        "设置每日商店推送地点" to listOf(
+        "添加群到每日商店推送地点" to listOf(
             CheckRiotStatusAndSettingProcessor,
             CheckIsBotFriendProcessor,
-            AskDailyStorePushLocationProcessor,
-            ParseDailyStorePushLocationProcessor
+            AddLocateToDailyStorePushLocatesProcessor
+        ),
+        "设置当前地点为每日商店推送地点" to listOf(
+            CheckRiotStatusAndSettingProcessor,
+            CheckIsBotFriendProcessor,
+            AddCurrentLocateToDailyStorePushLocatesProcessor
         )
     )
 }

@@ -2,17 +2,15 @@ package io.tiangou.logic.image.generator
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.tiangou.logic.image.utils.*
 import io.tiangou.other.http.client
 import io.tiangou.other.image.awt.*
 import io.tiangou.repository.UserCache
-import java.awt.Color
-import java.awt.Graphics2D
+import io.tiangou.utils.*
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 
 
-internal interface AwtImageGenerator {
+abstract class AwtImageGenerator {
 
     suspend fun storeImage(originImage: BufferedImage, imageList: List<BufferedImage>): ByteArray {
         return originImage.makeByImageAndProportion(9, 16).apply {
@@ -35,26 +33,9 @@ internal interface AwtImageGenerator {
         }.writeImage()
     }
 
-    fun BufferedImage.setBackgroundColor(rgbaString: String? = null, alphaPercent: Float = 1f): BufferedImage {
-        if (rgbaString?.isNotEmpty() == true) {
-            createGraphics().apply {
-                val originColor = color
-                color = rgbaConvert(rgbaString, alphaPercent)
-                fillRect(0, 0, width, height)
-                color = originColor
-            }.dispose()
-        }
-        return this
-    }
-
-    fun Graphics2D.setFont(fontSize: Int) {
-        paint = Color.WHITE
-        font = font.deriveFont(fontSize.toFloat())
-    }
-
 }
 
-class AwtSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : AwtImageGenerator, ImageHelper {
+class AwtSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : AwtImageGenerator(), ImageHelper {
 
 
     override suspend fun generate(): ByteArray {
@@ -62,15 +43,15 @@ class AwtSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : AwtI
         val width = (image.width - image.width * 0.4f).toInt()
         return storeImage(
             image,
-            StoreApiHelper.querySkinsPanelLayout(userCache).map {
-                singleSkinImage(width, width / 2, SkinsPanelLayout.getMediaData(it))
+            SkinsPanelLayout.convert(StoreApiHelper.queryStoreFront(userCache)).map {
+                singleSkinImage(width, width / 2, it)
             }
         )
     }
 
     private suspend fun singleSkinImage(width: Int, height: Int, data: SkinImageData): BufferedImage {
         val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
-            .setBackgroundColor(data.backgroundColor, 0.5f)
+            .setBackgroundColor(data.backgroundColor)
         image.createGraphics().apply {
             setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
             if (data.contentTiersUrl?.isNotEmpty() == true) {
@@ -108,15 +89,15 @@ class AwtSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : AwtI
 
 }
 
-class AwtAccessoryImageGenerator(private val userCache: UserCache) : AwtImageGenerator, ImageHelper {
+class AwtAccessoryImageGenerator(private val userCache: UserCache) : AwtImageGenerator(), ImageHelper {
 
     override suspend fun generate(): ByteArray {
         val image = readImage(ImageHelper.getBackgroundFile(userCache))
         val width = (image.width - image.width * 0.4f).toInt()
         return storeImage(
             image,
-            StoreApiHelper.queryAccessoryStore(userCache).map {
-                singleSkinImage(width, width / 2, Accessory.getMediaData(it))
+            Accessory.convert(StoreApiHelper.queryStoreFront(userCache)).map {
+                singleSkinImage(width, width / 2, it)
             }
         )
     }

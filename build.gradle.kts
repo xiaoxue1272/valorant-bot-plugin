@@ -5,8 +5,8 @@ plugins {
     id("net.mamoe.mirai-console") version "2.15.0"
 }
 
-group = "io.tiangou.valobot"
-version = "0.6.2"
+group = "io.tiangou.plugins"
+version = "0.7.0-dev"
 
 val kotlinVersion = "1.8.20"
 val ktorVersion = "2.2.4"
@@ -14,6 +14,11 @@ val seleniumVersion = "4.9.1"
 val freemarkerVersion = "2.3.32"
 val skikoVersion = "0.7.9"
 val serializationVersion = "1.5.1"
+
+
+mirai {
+    jvmTarget = JavaVersion.VERSION_1_8
+}
 
 repositories {
     mavenCentral()

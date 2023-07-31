@@ -1,19 +1,29 @@
 package io.tiangou
 
 import io.tiangou.repository.UserCacheRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.event.EventHandler
 import net.mamoe.mirai.event.SimpleListenerHost
-import net.mamoe.mirai.event.events.*
+import net.mamoe.mirai.event.events.BotInvitedJoinGroupRequestEvent
+import net.mamoe.mirai.event.events.GroupMessageEvent
+import net.mamoe.mirai.event.events.MessageEvent
+import net.mamoe.mirai.event.events.NewFriendRequestEvent
 import net.mamoe.mirai.message.data.At
 import net.mamoe.mirai.message.data.QuoteReply
 import net.mamoe.mirai.message.data.firstIsInstanceOrNull
 import net.mamoe.mirai.utils.MiraiLogger
+import kotlin.coroutines.CoroutineContext
 
 object EventHandler : SimpleListenerHost() {
 
     private val log: MiraiLogger = MiraiLogger.Factory.create(this::class)
+
+    override fun handleException(context: CoroutineContext, exception: Throwable) {
+        log.warning("io.tiangou.EventHandler exception catcher: catch an exception:$exception")
+    }
 
     @EventHandler
     suspend fun BotInvitedJoinGroupRequestEvent.onMessage() {
@@ -34,35 +44,41 @@ object EventHandler : SimpleListenerHost() {
         if (!checkMessageAllow()) {
             return
         }
-        UserCacheRepository[sender.id].apply {
-            if (Global.eventConfig.exitLogicCommand == message.toText()) {
+        val userCache = UserCacheRepository[sender.id]
+        userCache.logicSelector.apply {
+            if (Global.eventConfig.exitLogicCommand == toText()) {
                 exitLogic()
                 return
             }
-            logicSelector.run {
-                if (processJob != null && processJob!!.isActive) {
-                    reply("正在执行中,请稍候")
-                    return
-                }
+            if (processJob != null && processJob!!.isActive) {
+                reply("正在执行中,请稍候")
+                return
+            }
+        }.apply {
+            runCatching {
                 processJob = launch {
-                    runCatching {
-                        while (true) {
-                            val logicProcessor = loadLogic(this@onMessage.message.toText())
-                                ?: inputNotFoundHandle("未找到对应操作,请检查输入是否正确").let { return@launch }
-                            if (!logicProcessor.synchronousProcess(this@onMessage, this@apply)) break
-                        }
-                    }.onFailure {
-                        isRunningError = true
-                        if (it is ValorantRuntimeException) {
-                            log.warning("qq user:[${sender.id}]", it)
-                            reply("${it.message}")
-                        } else {
-                            log.warning("processing valorant bot logic throw throwable", it)
-                            reply("error: ${it.message}")
-                        }
+                    val processorList = loadLogic(this@onMessage.message.toText())
+                        ?: inputNotFoundHandle("未找到对应操作,请检查输入是否正确").let { return@launch }
+                    for (logicProcessor in processorList) {
+                        logicProcessor.apply { process(userCache) }
                     }
-                    createTimeoutCancelJob(this@onMessage, this@apply)
-                    cleanWhenCompleted()
+                }.apply {
+                    invokeOnCompletion {
+                        processJob = null
+                        if (it != null && it is CancellationException) runBlocking { reply("已退出指令") }
+                    }
+                }
+            }.onFailure {
+                when (it) {
+                    is ValorantRuntimeException -> {
+                        log.warning("qq user:[${sender.id}]", it)
+                        reply("${it.message}")
+                    }
+
+                    else -> {
+                        log.warning("processing valorant bot logic throw throwable", it)
+                        reply("error: ${it.message}")
+                    }
                 }
             }
         }
@@ -82,8 +98,13 @@ object EventHandler : SimpleListenerHost() {
             }
         }
         when (VisitConfig.controlType) {
-            VisitControlEnum.WHITE_LIST -> if (!subject.getVisitControlList().contains(subject.id)) inputNotFoundHandle("暂无操作权限").apply { return false }
-            VisitControlEnum.BLACK_LIST -> if (subject.getVisitControlList().contains(subject.id)) inputNotFoundHandle("暂无操作权限").apply { return false }
+            VisitControlEnum.WHITE_LIST -> if (!subject.getVisitControlList().contains(subject.id)) inputNotFoundHandle(
+                "暂无操作权限"
+            ).apply { return false }
+
+            VisitControlEnum.BLACK_LIST -> if (subject.getVisitControlList()
+                    .contains(subject.id)
+            ) inputNotFoundHandle("暂无操作权限").apply { return false }
         }
         return true
     }

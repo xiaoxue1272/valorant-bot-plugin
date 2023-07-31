@@ -1,14 +1,11 @@
 package io.tiangou.logic
 
-import io.tiangou.api.RiotApi
-import io.tiangou.logic.image.utils.ImageHelper
-import io.tiangou.logic.image.utils.StoreApiHelper
+import io.tiangou.VisitConfig
+import io.tiangou.VisitControlEnum
 import io.tiangou.reply
-import io.tiangou.repository.UserCache
-import kotlinx.coroutines.runBlocking
 import net.mamoe.mirai.event.events.MessageEvent
 
-val HELP_LIST_MESSAGE: String by lazy {
+internal val HELP_LIST_MESSAGE: String by lazy {
     """
     帮助列表
     1.账号登录 (注:请私聊发送)
@@ -27,7 +24,7 @@ val HELP_LIST_MESSAGE: String by lazy {
     """.trimIndent()
 }
 
-val ASK_LOCATION_AREA_MESSAGE by lazy {
+internal val ASK_LOCATION_AREA_MESSAGE by lazy {
     """
     请输入你想要设置的地区
     
@@ -42,15 +39,24 @@ val ASK_LOCATION_AREA_MESSAGE by lazy {
     """.trimIndent()
 }
 
+internal suspend fun MessageEvent.isVisitAllow(qq: String): Boolean {
+    val longQQ = qq.toLong()
+    if (bot.getGroup(longQQ) == null) {
+        reply("无法设置群[$qq]为推送地点,Bot并未在指定群中")
+        return false
+    }
+    when (VisitConfig.controlType) {
+        VisitControlEnum.WHITE_LIST -> if (!VisitConfig.onGroups.contains(longQQ)) {
+            reply("群[$qq]暂无访问权限")
+            return false
+        }
 
-internal suspend fun UserCache.loginSuccessfulHandle(event: MessageEvent, authUrl: String) {
-    StoreApiHelper.clean(this)
-    ImageHelper.clean(this)
-    riotClientData.flushAccessToken(authUrl)
-    riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
-    riotClientData.puuid = RiotApi.PlayerInfo.execute().sub
-    isRiotAccountLogin = true
-    event.reply("登录成功")
+        VisitControlEnum.BLACK_LIST -> if (VisitConfig.onGroups.contains(longQQ)) {
+            reply("群[$qq]暂无访问权限")
+            return false
+        }
+    }
+    return true
 }
 
 enum class ServerLocationEnum(

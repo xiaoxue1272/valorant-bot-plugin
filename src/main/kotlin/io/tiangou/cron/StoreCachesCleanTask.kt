@@ -1,9 +1,9 @@
 package io.tiangou.cron
 
 import io.ktor.util.date.*
-import io.tiangou.logic.image.utils.ImageHelper
-import io.tiangou.logic.image.utils.StoreApiHelper
 import io.tiangou.repository.UserCacheRepository
+import io.tiangou.utils.ImageHelper
+import io.tiangou.utils.StoreApiHelper
 import java.time.ZoneId
 import java.util.*
 

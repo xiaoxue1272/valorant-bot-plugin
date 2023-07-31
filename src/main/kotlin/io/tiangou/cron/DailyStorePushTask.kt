@@ -1,12 +1,12 @@
 package io.tiangou.cron
 
 import io.tiangou.isVisitAllow
-import io.tiangou.logic.image.utils.GenerateImageType
-import io.tiangou.logic.image.utils.ImageHelper
 import io.tiangou.reply
 import io.tiangou.repository.UserCache
 import io.tiangou.repository.UserCacheRepository
 import io.tiangou.uploadImage
+import io.tiangou.utils.GenerateImageType
+import io.tiangou.utils.ImageHelper
 import kotlinx.serialization.Serializable
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.contact.Contact

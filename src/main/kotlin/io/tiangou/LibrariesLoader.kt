@@ -100,7 +100,6 @@ object SkikoLibrariesLoader : LibrariesLoader() {
                             writeBytes(client.get(headers["location"]!!).readBytes())
                         } else writeBytes(readBytes())
                     }
-
                 }
                 log.info("$libDescription downloaded")
             }

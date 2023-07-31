@@ -1,16 +1,22 @@
 package io.tiangou.other.image.awt
 
+import io.tiangou.Global
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
-import java.awt.AlphaComposite
-import java.awt.Color
-import java.awt.Graphics
-import java.awt.Transparency
+import java.awt.*
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 
+
+private val customerFont: Font? = Global.drawImageConfig.font.path?.toFile()?.let {
+    when (it.extension.uppercase()) {
+        "TTF", "OTF" -> Font.createFont(Font.TRUETYPE_FONT, it)
+        "PFB" -> Font.createFont(Font.TYPE1_FONT, it)
+        else -> null
+    }
+}
 
 internal suspend fun readImage(bytes: ByteArray): BufferedImage {
     return runInterruptible(Dispatchers.IO) {
@@ -56,6 +62,19 @@ internal fun BufferedImage.makeByImageAndProportion(wp: Int, hp: Int): BufferedI
     )
 }
 
+internal fun BufferedImage.setBackgroundColor(rgbaString: String? = null, alphaPercent: Float? = null): BufferedImage =
+    apply {
+        if (rgbaString?.isNotEmpty() == true) {
+            createGraphics().apply {
+                val originColor = color
+                color =
+                    if (alphaPercent == null) rgbaConvert(rgbaString, true) else rgbaConvert(rgbaString, alphaPercent)
+                fillRect(0, 0, width, height)
+                color = originColor
+            }.dispose()
+        }
+    }
+
 internal suspend fun Graphics.writeImageRect(
     bytes: ByteArray,
     width: Int,
@@ -90,6 +109,11 @@ internal fun Graphics.writeImageRect(
         height,
         null
     )
+}
+
+internal fun Graphics2D.setFont(fontSize: Int) {
+    paint = rgbaConvert(Global.drawImageConfig.font.color, true)
+    font = (customerFont ?: font).deriveFont(fontSize.toFloat())
 }
 
 internal fun BufferedImage.setAlpha(alphaPercent: Float = 1f): BufferedImage {

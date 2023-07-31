@@ -1,4 +1,4 @@
-package io.tiangou.logic.image.utils
+package io.tiangou.utils
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -36,7 +36,6 @@ internal interface ImageHelper {
         internal val cacheSkinsPanelLayoutImages: ConcurrentHashMap<String, ByteArray> by lazy { ConcurrentHashMap() }
 
         internal val cacheAccessoryStoreImages: ConcurrentHashMap<String, ByteArray> by lazy { ConcurrentHashMap() }
-
 
         fun get(userCache: UserCache, type: GenerateImageType): ByteArray {
             return userCache.synchronous {
@@ -80,7 +79,6 @@ internal interface ImageHelper {
                 }
             }
         }
-
 
         fun getBackgroundFile(userCache: UserCache) =
             userCache.customBackgroundFile?.readBytes()

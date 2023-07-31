@@ -1,6 +1,13 @@
 package io.tiangou.other.image.skiko
 
+import io.tiangou.Global
 import org.jetbrains.skia.*
+import kotlin.io.path.readBytes
+
+
+private val customerFont: Font = Font(
+    Global.drawImageConfig.font.path?.readBytes()?.let { Typeface.makeFromData(Data.makeFromBytes(it)) }
+)
 
 inline fun <reified T> Surface.afterClose(block: Surface.() -> T): T {
     val result = block(this)
@@ -130,4 +137,12 @@ internal fun rgbaConvert(str: String): Int {
         else -> throw IllegalArgumentException("str is not RGB or RGBA format")
     }
 }
+
+internal fun makeTextLine(text: String, fontSize: Float) = TextLine.make(text, customerFont.makeWithSize(fontSize))
+
+internal fun Canvas.writeTextLine(textLine: TextLine, x: Float, y: Float) =
+    drawTextLine(textLine, x, y, Paint().apply { color = rgbaConvert(Global.drawImageConfig.font.color) })
+
+
+
 

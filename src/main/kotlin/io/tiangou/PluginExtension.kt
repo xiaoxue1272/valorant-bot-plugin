@@ -20,16 +20,26 @@ import net.mamoe.mirai.console.plugin.PluginManager
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.contact.Group
 import net.mamoe.mirai.contact.User
+import net.mamoe.mirai.event.EventPriority
+import net.mamoe.mirai.event.GlobalEventChannel
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.events.MessageEvent
+import net.mamoe.mirai.event.nextEvent
 import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.message.data.Image.Key.isUploaded
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import java.io.File
 import java.nio.file.Path
 
-fun MessageChain.toText() =
-    MessageChainBuilder().apply { addAll(this@toText.filterIsInstance<PlainText>()) }.asMessageChain().content.trim()
+fun MessageChain.toText() = filterIsInstance<PlainText>().toMessageChain().content.trim()
+
+fun MessageEvent.toText() = message.toText()
+
+suspend fun MessageEvent.nextMessageEvent(): MessageEvent =
+    GlobalEventChannel.nextEvent(
+        EventPriority.HIGHEST,
+        intercept = true
+    ) { it.sender.id == sender.id && it.toText() != Global.eventConfig.exitLogicCommand }
 
 suspend fun MessageEvent.reply(message: String) {
     when (this) {
@@ -65,6 +75,7 @@ fun isVisitAllow(qq: Long, bot: Bot): Boolean {
         VisitControlEnum.WHITE_LIST -> if (!contact.getVisitControlList().contains(qq)) {
             return false
         }
+
         VisitControlEnum.BLACK_LIST -> if (contact.getVisitControlList().contains(qq)) {
             return false
         }
@@ -72,7 +83,7 @@ fun isVisitAllow(qq: Long, bot: Bot): Boolean {
     return true
 }
 
-fun Contact.getVisitControlList() = when(this) {
+fun Contact.getVisitControlList() = when (this) {
     is Group -> VisitConfig.onGroups
     else -> VisitConfig.onUsers
 }
@@ -110,7 +121,7 @@ suspend fun uploadImage(bytes: ByteArray, contact: Contact, bot: Bot): Image? {
     return uploadImage.isUploaded(bot).takeIf { it }?.let { uploadImage }
 }
 
-suspend fun MessageEvent.uploadImage(bytes: ByteArray) {
+suspend fun MessageEvent.replyImage(bytes: ByteArray) {
     uploadImage(bytes, subject, bot)?.apply {
         reply(MessageChainBuilder().append(this).build())
     } ?: reply("图片上传失败,请稍候重试")
@@ -180,7 +191,6 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
     data class EventConfigData(
         val isWarnOnInputNotFound: Boolean = true,
         val groupMessageHandleStrategy: GroupMessageHandleEnum = GroupMessageHandleEnum.AT_AND_QUOTE_REPLY,
-        val waitTimeoutMinutes: Int = 5,
         val autoAcceptFriendRequest: Boolean = true,
         val autoAcceptGroupRequest: Boolean = true,
         val exitLogicCommand: String = "退出"
@@ -194,9 +204,20 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
 
     @Serializable
     data class DrawImageConfig(
-        val api: DrawImageApiEnum = DrawImageApiEnum.AWT,
+        val api: DrawImageApiEnum = DrawImageApiEnum.SKIKO,
+        val font: FontConfigData = FontConfigData(),
         val libDictionary: Path = PluginManager.pluginLibrariesPath
-    )
+    ) {
+
+        @Serializable
+        data class FontConfigData(
+            @ValueDescription("字体文件的路径, 为空代表使用默认字体")
+            val path: Path? = null,
+            @ValueDescription("字体颜色 默认白色")
+            val color: String = "#FFFFFF"
+        )
+
+    }
 
 }
 
