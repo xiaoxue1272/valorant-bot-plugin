@@ -55,30 +55,29 @@ object EventHandler : SimpleListenerHost() {
                 return
             }
         }.apply {
-            runCatching {
-                processJob = launch {
+            processJob = launch {
+                runCatching {
                     val processorList = loadLogic(this@onMessage.message.toText())
                         ?: inputNotFoundHandle("未找到对应操作,请检查输入是否正确").let { return@launch }
                     for (logicProcessor in processorList) {
                         logicProcessor.apply { process(userCache) }
                     }
-                }.apply {
-                    invokeOnCompletion {
-                        processJob = null
-                        if (it != null && it is CancellationException) runBlocking { reply("已退出指令") }
+                }.onFailure {
+                    when (it) {
+                        is ValorantRuntimeException -> {
+                            log.warning("qq user:[${sender.id}]", it)
+                            reply("${it.message}")
+                        }
+                        else -> {
+                            log.warning("processing valorant bot logic throw throwable", it)
+                            reply("error: ${it.message}")
+                        }
                     }
                 }
-            }.onFailure {
-                when (it) {
-                    is ValorantRuntimeException -> {
-                        log.warning("qq user:[${sender.id}]", it)
-                        reply("${it.message}")
-                    }
-
-                    else -> {
-                        log.warning("processing valorant bot logic throw throwable", it)
-                        reply("error: ${it.message}")
-                    }
+            }.apply {
+                invokeOnCompletion {
+                    processJob = null
+                    if (it != null && it is CancellationException) runBlocking { reply("已退出指令") }
                 }
             }
         }
