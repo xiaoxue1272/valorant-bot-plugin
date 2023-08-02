@@ -25,7 +25,7 @@ object StoreCachesCleanTask : Task() {
 
     override suspend fun execute() {
         UserCacheRepository.getAllUserCache().forEach {
-            it.value.synchronous {
+            it.value.synchronized {
                 StoreApiHelper.storeFronts.clear()
                 ImageHelper.cacheSkinsPanelLayoutImages.clear()
                 if (GMTDate().dayOfWeek == WeekDay.WEDNESDAY) {

@@ -7,14 +7,14 @@ import io.tiangou.JsonStorage
 import io.tiangou.StoragePathEnum
 import io.tiangou.api.RiotClientData
 import io.tiangou.logic.LogicSelector
-import io.tiangou.serializer.FileSerializer
+import io.tiangou.FileSerializer
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.serializer
 import java.io.File
-import java.util.concurrent.ConcurrentHashMap
 
 @Serializable
 data class UserCache(
@@ -22,18 +22,34 @@ data class UserCache(
     var isRiotAccountLogin: Boolean = false,
     var subscribeDailyStore: Boolean = false,
     var customBackgroundFile: File? = null,
-    @Deprecated("由于设计问题, 自v0.7.0弃用") var dailyStorePushLocations: MutableMap<Long, Boolean> = mutableMapOf(),
+//    @Deprecated("由于设计问题, 自v0.7.0弃用") var dailyStorePushLocations: MutableMap<Long, Boolean> = mutableMapOf(),
     var dailyStorePushLocates: MutableMap<Long, ContactEnum> = mutableMapOf(),
-    @Transient val logicSelector: LogicSelector = LogicSelector(),
 ) {
 
+    @Transient
+    val lock = Mutex()
+
+    @Transient
+    val logicSelector: LogicSelector = LogicSelector()
+
+    @Serializable
     enum class ContactEnum {
         USER,
         GROUP
     }
 
-    inline fun <reified T> synchronous(crossinline block: suspend UserCache.() -> T): T =
-        synchronized(this) { runBlocking { block(this@UserCache) } }
+    suspend inline fun <reified T> synchronous(crossinline block: suspend UserCache.() -> T): T {
+        return try {
+            lock.lock(this)
+            block(this@UserCache)
+        } finally {
+            lock.takeIf { it.holdsLock(this) }?.unlock(this)
+        }
+    }
+
+    inline fun <reified T> synchronized(crossinline block: suspend UserCache.() -> T): T {
+        return runBlocking { synchronous(block) }
+    }
 
 }
 
@@ -41,16 +57,15 @@ object UserCacheRepository : AutoFlushStorage<MutableMap<Long, UserCache>>(
     JsonStorage("user-cache", StoragePathEnum.DATA_PATH, serializer())
 ) {
 
-    override var data: MutableMap<Long, UserCache> = runBlocking { load() ?: store(ConcurrentHashMap()) }
+    override var data: MutableMap<Long, UserCache> = runBlocking { load() ?: store(mutableMapOf()) }
 
     init {
         registry()
     }
 
-    operator fun get(qq: Long): UserCache = (data[qq] ?: UserCache().apply { data[qq] = this }).apply {
-        if (dailyStorePushLocations.isEmpty()) {
-            dailyStorePushLocations[qq] = true
-        }
+    operator fun get(qq: Long): UserCache = data[qq] ?: UserCache().apply {
+        data[qq] = this
+        dailyStorePushLocates.takeIf { it.isEmpty() }?.let { dailyStorePushLocates[qq] = UserCache.ContactEnum.USER }
     }
 
     fun getAllUserCache(): Map<Long, UserCache> = data

@@ -29,14 +29,16 @@ repositories {
 
 
 dependencies {
+    implementation("net.mamoe.yamlkt:yamlkt-jvm:0.12.0")
+    implementation("org.xerial:sqlite-jdbc:3.42.0.0")
+    implementation("cn.hutool:hutool-cron:5.8.20")
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation("io.ktor:ktor-client-okhttp:$ktorVersion")
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     implementation("io.ktor:ktor-client-logging:$ktorVersion")
     implementation("io.ktor:ktor-client-encoding:$ktorVersion")
-    implementation("org.xerial:sqlite-jdbc:3.42.0.0")
-    implementation("cn.hutool:hutool-cron:5.8.20")
     // skiko support
     implementation("org.jetbrains.skiko:skiko-awt:$skikoVersion")
+
 }

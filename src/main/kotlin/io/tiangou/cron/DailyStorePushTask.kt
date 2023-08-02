@@ -57,13 +57,20 @@ class DailyStorePushTask(
     }
 
     private fun UserCache.filterPushLocations(userQQ: Long, onlineBots: List<Bot>): List<BotPushLocation> {
+        val currentPushLocates = dailyStorePushLocates.toMutableMap()
         return mutableListOf<BotPushLocation>().apply {
             for (bot in onlineBots) {
                 val user = bot.getFriend(userQQ) ?: bot.getStranger(userQQ)
                 if (user != null) {
-                    dailyStorePushLocations.filter { it.value }.mapNotNull { location ->
-                        (bot.getGroup(location.key) ?: bot.getFriend(location.key) ?: bot.getStranger(location.key))
-                            ?.takeIf { isVisitAllow(it.id, bot) }
+                    currentPushLocates.toMutableMap().mapNotNull { location ->
+                        when (location.value) {
+                            UserCache.ContactEnum.GROUP -> bot.getGroup(location.key)
+                            UserCache.ContactEnum.USER -> bot.getFriend(location.key) ?: bot.getStranger(location.key)
+                        }?.takeIf {
+                            isVisitAllow(it.id, bot)
+                        }?.apply {
+                            currentPushLocates.remove(location.key)
+                        }
                     }.takeIf { it.isNotEmpty() }?.let {
                         add(BotPushLocation(bot, user, it))
                     }

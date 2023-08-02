@@ -2,15 +2,14 @@ package io.tiangou.other.image.skiko
 
 import io.tiangou.Global
 import org.jetbrains.skia.*
-import kotlin.io.path.readBytes
 
 
 private val customerFont: Font = Font(
-    Global.drawImageConfig.font.path?.readBytes()?.let { Typeface.makeFromData(Data.makeFromBytes(it)) }
+    Global.drawImageConfig.font.reference.getResourceBytes()?.let { Typeface.makeFromData(Data.makeFromBytes(it)) }
 )
 
-inline fun <reified T> Surface.afterClose(block: Surface.() -> T): T {
-    val result = block(this)
+inline fun <reified T> Surface.afterClose(block: Canvas.(Surface) -> T): T {
+    val result = block(canvas, this)
     close()
     return result
 }
@@ -89,10 +88,10 @@ internal fun Canvas.writeBackgroundColor(surface: Surface, rgbaString: String, a
     })
 }
 
-internal fun Surface.Companion.makeByImageAndProportion(bytes: ByteArray, wp: Int, hp: Int): Surface =
-    makeByImageAndProportion(Image.makeFromEncoded(bytes), wp, hp)
+internal fun Surface.Companion.makeByImageAndProportion(bytes: ByteArray, wp: Int, hp: Int, alpha: Float = 1f): Surface =
+    makeByImageAndProportion(Image.makeFromEncoded(bytes), wp, hp, alpha)
 
-internal fun Surface.Companion.makeByImageAndProportion(image: Image, wp: Int, hp: Int): Surface {
+internal fun Surface.Companion.makeByImageAndProportion(image: Image, wp: Int, hp: Int, alpha: Float = 1f): Surface {
     val maxSide = if (image.width > image.height) image.width else image.height
     var width: Int
     var height: Int
@@ -112,7 +111,7 @@ internal fun Surface.Companion.makeByImageAndProportion(image: Image, wp: Int, h
         height = image.height
     }
     return makeRasterN32Premul(width, height).apply {
-        canvas.writeImageRect(image, (width - image.width) / 2f, (height - image.height) / 2f)
+        canvas.writeImageRect(image, (width - image.width) / 2f, (height - image.height) / 2f, alpha)
     }
 }
 

@@ -4,7 +4,7 @@ import cn.hutool.cron.pattern.CronPattern
 import cn.hutool.cron.pattern.CronPatternUtil
 import io.ktor.util.date.*
 import io.tiangou.Global
-import io.tiangou.serializer.TimeZoneSerializer
+import io.tiangou.TimeZoneSerializer
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient

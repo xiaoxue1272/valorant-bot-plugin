@@ -1,8 +1,8 @@
 package io.tiangou.other.http
 
 import io.ktor.http.*
-import io.tiangou.serializer.AtomicLongSerializer
-import io.tiangou.serializer.CookieSerializer
+import io.tiangou.AtomicLongSerializer
+import io.tiangou.CookieSerializer
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient

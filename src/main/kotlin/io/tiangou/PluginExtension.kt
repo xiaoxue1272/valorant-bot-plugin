@@ -1,11 +1,12 @@
 @file:UseSerializers(PathSerializer::class)
+@file:Suppress("unused")
 
 package io.tiangou
 
 import io.tiangou.command.CronTaskCommand
-import io.tiangou.serializer.PathSerializer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.json.Json
 import net.mamoe.mirai.Bot
@@ -28,8 +29,11 @@ import net.mamoe.mirai.event.nextEvent
 import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.message.data.Image.Key.isUploaded
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
+import net.mamoe.yamlkt.Comment
 import java.io.File
+import java.net.URI
 import java.nio.file.Path
+import kotlin.io.path.Path
 
 fun MessageChain.toText() = filterIsInstance<PlainText>().toMessageChain().content.trim()
 
@@ -148,77 +152,161 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
     val coroutineScope: CoroutineScope
         get() = ValorantBotPlugin
 
-    @ValueDescription(
-        """
-        事件监听配置
-        isWarnOnInputNotFound: 当输入不正确时发出警告(为true时回复未知操作,false不回复消息)
-        groupMessageHandleStrategy: 配置群内消息监听策略
+    val configFolder: File = ValorantBotPlugin.configFolder
+
+    val configFolderPath: Path = ValorantBotPlugin.configFolderPath
+
+    val dataFolder: File = ValorantBotPlugin.dataFolder
+
+    val dataFolderPath: Path = ValorantBotPlugin.dataFolderPath
+
+    val pluginCacheFolder: File = ValorantBotPlugin.dataFolder.resolve("cache").apply { mkdir() }
+
+    val pluginCacheFolderPath: Path = pluginCacheFolder.toPath()
+
+    @ValueDescription("事件监听配置")
+    val eventConfig: EventConfigData by value(EventConfigData())
+
+    @ValueDescription("数据库配置")
+    val databaseConfig: DatabaseConfigData by value(DatabaseConfigData())
+
+    @ValueDescription("绘图相关配置")
+    val drawImageConfig: DrawImageConfig by value(DrawImageConfig())
+
+    @Serializable
+    data class EventConfigData(
+        @Comment("当输入不正确时发出警告(为true时回复未知操作,false不回复消息)")
+        val isWarnOnInputNotFound: Boolean = true,
+        @Comment("""
+            配置群内消息监听策略
             AT: 监听AT消息, 
             AT_AND_QUOTE_REPLY: 监听AT和引用回复消息, 
             QUOTE_REPLY: 监听引用回复消息, 
             NONE: 不监听群内消息, ALL: 监听所有群消息
             默认为: AT_AND_QUOTE_REPLY, 就是监听 AT消息和引用回复消息.
-        waitTimeoutMinutes: 指令等待输入超时时间,请不要设置太短或太长,分为单位,默认5分钟
-        autoAcceptFriendRequest: 是否自动接受好友申请
-        autoAcceptGroupRequest: 是否自动接受群邀请
-        exitLogicCommand: 退出指令执行的关键字 默认为[退出]
-    """
-    )
-    val eventConfig: EventConfigData by value(EventConfigData())
-
-    @ValueDescription(
-        """
-        数据库配置
-        jdbcUrl: 数据库连接JDBC URL
-        isInitOnEnable: 是否在插件加载时就初始化数据库数据
-    """
-    )
-    val databaseConfig: DatabaseConfigData by value(DatabaseConfigData())
-
-    @ValueDescription(
-        """
-        绘图相关配置
-        api: 
-            SKIKO: 使用Skiko进行绘图(某些CPU架构可能不支持)
-            AWT: 使用Java内置GUI进行绘图
-            默认为: SKIKO
-        libDictionary: GUI库类存放路径(目前仅SKIKO使用,AWT不使用)
-    """
-    )
-    val drawImageConfig: DrawImageConfig by value(DrawImageConfig())
-
-    @Serializable
-    data class EventConfigData(
-        val isWarnOnInputNotFound: Boolean = true,
+        """)
         val groupMessageHandleStrategy: GroupMessageHandleEnum = GroupMessageHandleEnum.AT_AND_QUOTE_REPLY,
+        @Comment("是否自动接受好友申请")
         val autoAcceptFriendRequest: Boolean = true,
+        @Comment("是否自动接受群邀请")
         val autoAcceptGroupRequest: Boolean = true,
+        @Comment("退出指令执行的关键字 默认为[退出]")
         val exitLogicCommand: String = "退出"
     )
 
     @Serializable
     data class DatabaseConfigData(
+        @Comment("数据库连接JDBC URL")
         val jdbcUrl: String = "jdbc:sqlite:${ValorantBotPlugin.dataFolder}${File.separator}ValorantPlugin.DB3",
+        @Comment("是否在插件加载时就初始化数据库数据")
         val isInitOnEnable: Boolean = true
     )
 
     @Serializable
     data class DrawImageConfig(
+        @Comment("""
+                SKIKO: 使用Skiko进行绘图(某些CPU架构可能不支持)
+                AWT: 使用Java内置GUI进行绘图
+                默认为: SKIKO
+            """)
         val api: DrawImageApiEnum = DrawImageApiEnum.SKIKO,
+        @Comment("字体相关配置")
         val font: FontConfigData = FontConfigData(),
-        val libDictionary: Path = PluginManager.pluginLibrariesPath
+        @Comment("GUI库类存放路径(目前仅SKIKO使用,AWT不使用)")
+        val libDictionary: Path = PluginManager.pluginLibrariesPath,
+        @Comment("背景图片相关配置")
+        val background: BackgroundConfigData = BackgroundConfigData()
     ) {
 
         @Serializable
         data class FontConfigData(
-            @ValueDescription("字体文件的路径, 为空代表使用默认字体")
-            val path: Path? = null,
-            @ValueDescription("字体颜色 默认白色")
-            val color: String = "#FFFFFF"
+            @Comment("字体资源路径配置")
+            val reference: ResourceResolveConfigData = ResourceResolveConfigData(),
+            @Comment("字体颜色 默认白色")
+            val color: String = "#FFFFFF",
+            @Comment("字体不透明度")
+            val alpha: Double = 1.0
         )
+
+        @Serializable
+        data class BackgroundConfigData(
+            @Comment("默认背景资源路径配置")
+            val reference: ResourceResolveConfigData = ResourceResolveConfigData(
+                ResourceReferenceType.URL,
+                "https://game.gtimg.cn/images/val/wallpaper/Logo_Wallpapers/VALORANT_Logo_V.jpg"
+            ),
+            @Comment("背景图片不透明度")
+            val alpha: Double = 1.0
+        )
+
 
     }
 
+}
+
+@Serializable
+enum class GroupMessageHandleEnum {
+    AT,
+    QUOTE_REPLY,
+    AT_AND_QUOTE_REPLY,
+    NONE,
+    ALL
+}
+
+@Serializable
+enum class DrawImageApiEnum {
+    AWT,
+    SKIKO,
+}
+
+@Serializable
+data class ResourceResolveConfigData(
+    @Comment("""
+                背景图片的地址类型
+                DISK: 本地磁盘下的路径
+                URL: Url类型的路径 (最常见的也就是 http://xxx.xxx, https://xxx.xxx, file://xxx/xxx)
+                当类型为URL时,会在本插件的 data/cache/ 目录下缓存默认背景图片.
+                主要目的是节省一些可能的非必要网络IO 并且会将 type修改为 DISK, value 也会修改为文件对应的绝对路径.
+            """)
+    var type: ResourceReferenceType? = null,
+    @Comment("资源路径值")
+    var value: String? = null
+) {
+
+    @Transient
+    private var resource: File? = null
+
+    init {
+        initResource()
+    }
+
+    fun initResource() {
+        resource = when (type) {
+            ResourceReferenceType.URL -> value.takeIf { it?.isNotEmpty() == true }?.let {
+                val url = URI.create(it).toURL()
+                Global.pluginCacheFolder.resolve(url.file.substringAfterLast("/")).apply {
+                    createNewFile()
+                    writeBytes(url.readBytes())
+                    type = ResourceReferenceType.DISK
+                    value = absolutePath
+                }
+            }
+
+            ResourceReferenceType.DISK -> value?.let { Path(it).toFile() }
+            null -> null
+        }
+    }
+
+    fun getResourceFile() = resource
+
+    fun getResourceBytes(): ByteArray? = getResourceFile()?.readBytes()
+
+}
+
+@Serializable
+enum class ResourceReferenceType {
+    URL,
+    DISK
 }
 
 object VisitConfig : AutoSavePluginConfig("visit-config") {
@@ -240,24 +328,9 @@ object VisitConfig : AutoSavePluginConfig("visit-config") {
 }
 
 @Serializable
-enum class GroupMessageHandleEnum {
-    AT,
-    QUOTE_REPLY,
-    AT_AND_QUOTE_REPLY,
-    NONE,
-    ALL
-}
-
-@Serializable
 enum class VisitControlEnum {
     WHITE_LIST,
     BLACK_LIST
-}
-
-@Serializable
-enum class DrawImageApiEnum {
-    AWT,
-    SKIKO,
 }
 
 open class ValorantRuntimeException(override val message: String?) : RuntimeException()

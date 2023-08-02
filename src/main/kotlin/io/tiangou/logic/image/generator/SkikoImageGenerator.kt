@@ -17,24 +17,22 @@ abstract class SkikoImageGenerator {
 
     suspend fun storeImage(background: Image, imageList: List<Image>): ByteArray {
         return runInterruptible(Dispatchers.IO) {
-            Surface.makeByImageAndProportion(background, 9, 16).afterClose {
-                canvas.apply {
-                    imageList.forEachIndexed { index, it ->
-                        val lr = width * 0.4f
-                        val imageWidth = width - lr
-                        val imageHeight = it.height * (imageWidth / it.width)
-                        val top =
-                            (height - imageHeight * imageList.size - height * 0.05f * (imageList.size - 1)) / 2
-                        writeImageRect(
-                            it,
-                            imageWidth,
-                            imageHeight,
-                            lr / 2f,
-                            top + (imageHeight + height * 0.05f) * index
-                        ).save()
-                    }
+            Surface.makeByImageAndProportion(background, 9, 16).afterClose { surface ->
+                imageList.forEachIndexed { index, it ->
+                    val lr = surface.width * 0.4f
+                    val imageWidth = surface.width - lr
+                    val imageHeight = it.height * (imageWidth / it.width)
+                    val top =
+                        (surface.height - imageHeight * imageList.size - surface.height * 0.05f * (imageList.size - 1)) / 2
+                    writeImageRect(
+                        it,
+                        imageWidth,
+                        imageHeight,
+                        lr / 2f,
+                        top + (imageHeight + surface.height * 0.05f) * index
+                    ).save()
                 }
-                makeImageSnapshot().encodeToData()!!.bytes
+                surface.makeImageSnapshot().encodeToData()!!.bytes
             }
         }
 
@@ -45,7 +43,7 @@ abstract class SkikoImageGenerator {
 class SkikoSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : SkikoImageGenerator(), ImageHelper {
 
     override suspend fun generate(): ByteArray {
-        val image = Image.makeFromEncoded(ImageHelper.getBackgroundFile(userCache))
+        val image = DrawImageApiAdpater.getSkikoBackground(userCache.customBackgroundFile).makeImageSnapshot()
         val width = (image.width - image.width * 0.4f).toInt()
         return storeImage(
             image,
@@ -58,11 +56,11 @@ class SkikoSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : Sk
     private suspend fun singleSkinImage(width: Int, height: Int, data: SkinImageData): Image =
         Surface.makeRaster(ImageInfo.makeN32Premul(width, height)).afterClose {
             if (data.backgroundColor?.isNotEmpty() == true) {
-                canvas.writeBackgroundColor(this@afterClose, data.backgroundColor)
+                writeBackgroundColor(it, data.backgroundColor)
             }
             if (data.contentTiersUrl?.isNotEmpty() == true) {
                 val contentTireSize = height / 6f
-                canvas.writeImageRect(
+                writeImageRect(
                     client.get(data.contentTiersUrl).readBytes(),
                     contentTireSize,
                     contentTireSize,
@@ -70,26 +68,26 @@ class SkikoSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : Sk
                 )
             }
             if (data.themeUrl?.isNotEmpty() == true) {
-                canvas.writeAutoSizeImage(
+                writeAutoSizeImage(
                     client.get(data.themeUrl).readBytes(),
-                    this@afterClose,
+                    it,
                     alphaPercent = 0.5f
                 )
             }
             if (data.skinUrl?.isNotEmpty() == true) {
-                canvas.writeAutoSizeImage(client.get(data.skinUrl).readBytes(), this@afterClose, 0.3f)
+                writeAutoSizeImage(client.get(data.skinUrl).readBytes(), it, 0.3f)
             }
             if (data.skinName?.isNotEmpty() == true) {
                 val fontSize = height / 12f
                 val textLine = makeTextLine(data.skinName, fontSize)
-                canvas.writeTextLine(
+                writeTextLine(
                     textLine,
                     width.toFloat() / 2f - textLine.width / 2f,
                     height.toFloat() / 2f + fontSize * 5,
                 )
             }
-            flush()
-            makeImageSnapshot()
+            it.flush()
+            it.makeImageSnapshot()
         }
 
 }
@@ -97,7 +95,7 @@ class SkikoSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : Sk
 class SkikoAccessoryImageGenerator(private val userCache: UserCache) : SkikoImageGenerator(), ImageHelper {
 
     override suspend fun generate(): ByteArray {
-        val image = Image.makeFromEncoded(ImageHelper.getBackgroundFile(userCache))
+        val image = DrawImageApiAdpater.getSkikoBackground(userCache.customBackgroundFile).makeImageSnapshot()
         val width = (image.width - image.width * 0.4f).toInt()
         return storeImage(
             image,
@@ -112,14 +110,14 @@ class SkikoAccessoryImageGenerator(private val userCache: UserCache) : SkikoImag
             val textX: Float = width / 2f
             var heightY: Float = height / 2f
             val fontSize = height / 12f
-            canvas.writeBackgroundColor(this@afterClose, "#707070", 0.5f)
+            writeBackgroundColor(it, "#707070", 0.5f)
             if (data.itemUrl?.isNotEmpty() == true) {
-                canvas.writeAutoSizeImage(client.get(data.itemUrl).readBytes(), this@afterClose)
+                writeAutoSizeImage(client.get(data.itemUrl).readBytes(), it)
                 heightY = height - (fontSize + fontSize / 5)
             }
             if (data.itemName?.isNotEmpty() == true) {
                 val textLine = makeTextLine(data.itemName, fontSize)
-                canvas.writeTextLine(
+                writeTextLine(
                     textLine,
                     textX - textLine.width / 2f,
                     heightY
@@ -127,14 +125,14 @@ class SkikoAccessoryImageGenerator(private val userCache: UserCache) : SkikoImag
             }
             if (data.contractName?.isNotEmpty() == true) {
                 val textLine = makeTextLine(data.contractName, fontSize)
-                canvas.writeTextLine(
+                writeTextLine(
                     textLine,
                     textX - textLine.width / 2f,
                     height.toFloat() - fontSize / 5,
                 )
             }
-            flush()
-            makeImageSnapshot()
+            it.flush()
+            it.makeImageSnapshot()
         }
 
 }

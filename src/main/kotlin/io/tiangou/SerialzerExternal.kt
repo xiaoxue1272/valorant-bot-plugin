@@ -1,4 +1,4 @@
-package io.tiangou.serializer
+package io.tiangou
 
 import io.ktor.http.*
 import kotlinx.serialization.KSerializer

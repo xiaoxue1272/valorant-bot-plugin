@@ -22,7 +22,7 @@ object StoreApiHelper {
 
     fun clean(userCache: UserCache) {
         userCache.riotClientData.puuid?.let {
-            userCache.synchronous {
+            userCache.synchronized {
                 storeFronts.remove(it)
             }
         }

@@ -44,8 +44,8 @@ interface Storage<T> {
 enum class StoragePathEnum(
     val path: Path
 ) {
-    CONFIG_PATH(ValorantBotPlugin.configFolderPath),
-    DATA_PATH(ValorantBotPlugin.dataFolderPath),
+    CONFIG_PATH(Global.configFolderPath),
+    DATA_PATH(Global.dataFolderPath),
     ;
 }
 

@@ -38,7 +38,7 @@ internal interface ImageHelper {
         internal val cacheAccessoryStoreImages: ConcurrentHashMap<String, ByteArray> by lazy { ConcurrentHashMap() }
 
         fun get(userCache: UserCache, type: GenerateImageType): ByteArray {
-            return userCache.synchronous {
+            return userCache.synchronized {
                 val key = userCache.riotClientData.puuid!!
                 when (Global.drawImageConfig.api) {
                     DrawImageApiEnum.SKIKO -> skikoGenerate(userCache, key, type)
@@ -73,16 +73,12 @@ internal interface ImageHelper {
 
         fun clean(userCache: UserCache) {
             userCache.riotClientData.puuid?.let {
-                userCache.synchronous {
+                userCache.synchronized {
                     cacheSkinsPanelLayoutImages.remove(it)
                     cacheAccessoryStoreImages.remove(it)
                 }
             }
         }
-
-        fun getBackgroundFile(userCache: UserCache) =
-            userCache.customBackgroundFile?.readBytes()
-                ?: globalBackground.readBytes()
 
     }
 

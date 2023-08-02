@@ -39,7 +39,7 @@ class AwtSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : AwtI
 
 
     override suspend fun generate(): ByteArray {
-        val image = readImage(ImageHelper.getBackgroundFile(userCache))
+        val image = DrawImageApiAdpater.getAwtBackground(userCache.customBackgroundFile)
         val width = (image.width - image.width * 0.4f).toInt()
         return storeImage(
             image,
@@ -92,7 +92,7 @@ class AwtSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : AwtI
 class AwtAccessoryImageGenerator(private val userCache: UserCache) : AwtImageGenerator(), ImageHelper {
 
     override suspend fun generate(): ByteArray {
-        val image = readImage(ImageHelper.getBackgroundFile(userCache))
+        val image = DrawImageApiAdpater.getAwtBackground(userCache.customBackgroundFile)
         val width = (image.width - image.width * 0.4f).toInt()
         return storeImage(
             image,

@@ -10,12 +10,19 @@ import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 
 
-private val customerFont: Font? = Global.drawImageConfig.font.path?.toFile()?.let {
+private val customerFont: Font? = Global.drawImageConfig.font.reference.getResourceFile()?.let {
     when (it.extension.uppercase()) {
         "TTF", "OTF" -> Font.createFont(Font.TRUETYPE_FONT, it)
         "PFB" -> Font.createFont(Font.TYPE1_FONT, it)
         else -> null
     }
+}
+
+inline fun <reified T> BufferedImage.afterClose(block: Graphics2D.(BufferedImage) -> T): T {
+    val graphics2D = createGraphics()
+    val result = block(graphics2D, this)
+    graphics2D.dispose()
+    return result
 }
 
 internal suspend fun readImage(bytes: ByteArray): BufferedImage {

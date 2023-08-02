@@ -60,7 +60,7 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
         currentEvent = nextMessageEvent()
         val password = currentEvent.toText()
         currentEvent.reply("请稍等,正在登录")
-        userCache.synchronous {
+        userCache.synchronized {
             riotClientData.actions {
                 // 因为cookie问题 如果是重复登录的话 登录不上去 所以清空
                 cookies.clear()
@@ -117,13 +117,13 @@ object ChangeLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
         val result = currentEvent.toText()
         ServerLocationEnum.values().forEach {
             if (it.value == result) {
-                userCache.synchronous {
+                userCache.synchronized {
                     riotClientData.shard = it.shard
                     riotClientData.region = it.region
+                    currentEvent.reply("设置成功")
+                    ImageHelper.clean(userCache)
+                    StoreApiHelper.clean(userCache)
                 }
-                currentEvent.reply("设置成功")
-                ImageHelper.clean(userCache)
-                StoreApiHelper.clean(userCache)
                 return
             }
         }
@@ -170,7 +170,7 @@ object QueryPlayerDailyStoreProcessor : LogicProcessor<MessageEvent> {
 @Serializable
 object SubscribeTaskDailyStoreProcessor : LogicProcessor<MessageEvent> {
     override suspend fun MessageEvent.process(userCache: UserCache) {
-        userCache.synchronous {
+        userCache.synchronized {
             subscribeDailyStore = !subscribeDailyStore
             val status: String = if (subscribeDailyStore) "开启" else "关闭"
             reply("已将你的每日商店推送状态设置为:$status")
@@ -185,7 +185,7 @@ object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
         reply("请上传背景图片(若要回复为默认背景,请发送\"恢复默认\")")
         nextMessageEvent().apply {
             if (toText() == "恢复默认") {
-                userCache.synchronous {
+                userCache.synchronized {
                     customBackgroundFile?.delete()
                     customBackgroundFile = null
                 }
@@ -196,7 +196,7 @@ object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
                         ?.toAbsoluteFile(subject.cast())?.takeIf { ImageType.matchOrNull(it.extension) != null }
                         ?.getUrl()
                     ?: reply("无法解析图片,请确认图片后缀无误,推荐上传PNG或JPG格式的图片").let { return }
-                userCache.synchronous {
+                userCache.synchronized {
                     customBackgroundFile = ValorantBotPlugin.dataFolder.resolve("${sender.id}_background.bkg")
                         .apply { writeBytes(client.get(downloadUrl).readBytes()) }
                 }

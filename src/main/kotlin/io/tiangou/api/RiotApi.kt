@@ -9,7 +9,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.tiangou.api.data.*
 import io.tiangou.other.http.ClientData
-import io.tiangou.serializer.AtomicReferenceSerializer
+import io.tiangou.AtomicReferenceSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 import net.mamoe.mirai.console.util.safeCast

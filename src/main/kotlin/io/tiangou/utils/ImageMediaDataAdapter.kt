@@ -4,6 +4,7 @@ import io.tiangou.api.data.StoreFrontResponse
 import io.tiangou.repository.persistnce.*
 
 internal interface ImageMediaDataAdapter<T : Any, R : Any> {
+
     fun convert(arg: T): R
 
 }
