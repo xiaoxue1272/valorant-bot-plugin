@@ -20,7 +20,9 @@ internal val HELP_LIST_MESSAGE: String by lazy {
     
     6.查询配件商店
     
-    7.设置每日商店推送地点
+    7.添加群到每日商店推送地点
+    
+    8.设置当前地点为每日商店推送地点
     """.trimIndent()
 }
 

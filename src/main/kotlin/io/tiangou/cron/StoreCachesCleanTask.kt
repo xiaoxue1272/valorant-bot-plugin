@@ -2,7 +2,7 @@ package io.tiangou.cron
 
 import io.ktor.util.date.*
 import io.tiangou.repository.UserCacheRepository
-import io.tiangou.utils.ImageHelper
+import io.tiangou.utils.ImageGenerator
 import io.tiangou.utils.StoreApiHelper
 import java.time.ZoneId
 import java.util.*
@@ -27,9 +27,9 @@ object StoreCachesCleanTask : Task() {
         UserCacheRepository.getAllUserCache().forEach {
             it.value.synchronized {
                 StoreApiHelper.storeFronts.clear()
-                ImageHelper.cacheSkinsPanelLayoutImages.clear()
+                ImageGenerator.cacheSkinsPanelLayoutImages.clear()
                 if (GMTDate().dayOfWeek == WeekDay.WEDNESDAY) {
-                    ImageHelper.cacheAccessoryStoreImages.clear()
+                    ImageGenerator.cacheAccessoryStoreImages.clear()
                 }
             }
         }

@@ -37,8 +37,6 @@ object DrawImageApiAdpater {
 
     private val fontFile: File? = Global.drawImageConfig.font.reference.getResourceFile()
 
-    private val fontAlpha: Float = Global.drawImageConfig.font.alpha.toFloat()
-
     private val wp: Int = 9
 
     private val hp: Int = 16
@@ -54,19 +52,15 @@ object DrawImageApiAdpater {
     internal suspend inline fun <reified T> drawSkikoOnBackground(file: File?, block: Canvas.(Surface) -> T): T =
         getSkikoBackground(file).afterClose { block(this, it) }
 
-    internal suspend fun getAwtFont(): java.awt.Font =
-        runInterruptible(Dispatchers.IO) {
-            when (fontFile?.extension?.uppercase()) {
-                "TTF", "OTF" -> java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, fontFile)
-                "PFB" -> java.awt.Font.createFont(java.awt.Font.TYPE1_FONT, fontFile)
-                else -> GraphicsEnvironment.getLocalGraphicsEnvironment().allFonts[0]
-            }
+    internal fun getAwtFont(): java.awt.Font =
+        when (fontFile?.extension?.uppercase()) {
+            "TTF", "OTF" -> java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, fontFile)
+            "PFB" -> java.awt.Font.createFont(java.awt.Font.TYPE1_FONT, fontFile)
+            else -> GraphicsEnvironment.getLocalGraphicsEnvironment().allFonts[0]
         }
 
-    internal suspend fun getSkikoFont(): org.jetbrains.skia.Font =
-        runInterruptible(Dispatchers.IO) {
-            org.jetbrains.skia.Font(fontFile?.readBytes()?.let { Data.makeFromBytes(it) }?.let { Typeface.makeFromData(it) })
-        }
+    internal fun getSkikoFont(): org.jetbrains.skia.Font =
+        org.jetbrains.skia.Font(fontFile?.readBytes()?.let { Data.makeFromBytes(it) }?.let { Typeface.makeFromData(it) })
 
 
 }

@@ -1,12 +1,11 @@
 package io.tiangou.other.image.skiko
 
 import io.tiangou.Global
+import io.tiangou.utils.DrawImageApiAdpater
 import org.jetbrains.skia.*
 
 
-private val customerFont: Font = Font(
-    Global.drawImageConfig.font.reference.getResourceBytes()?.let { Typeface.makeFromData(Data.makeFromBytes(it)) }
-)
+private val customerFont: Font = DrawImageApiAdpater.getSkikoFont()
 
 inline fun <reified T> Surface.afterClose(block: Canvas.(Surface) -> T): T {
     val result = block(canvas, this)
@@ -140,7 +139,9 @@ internal fun rgbaConvert(str: String): Int {
 internal fun makeTextLine(text: String, fontSize: Float) = TextLine.make(text, customerFont.makeWithSize(fontSize))
 
 internal fun Canvas.writeTextLine(textLine: TextLine, x: Float, y: Float) =
-    drawTextLine(textLine, x, y, Paint().apply { color = rgbaConvert(Global.drawImageConfig.font.color) })
+    drawTextLine(textLine, x, y, Paint().apply {
+        color = rgbaConvert(Global.drawImageConfig.font.color)
+    })
 
 
 

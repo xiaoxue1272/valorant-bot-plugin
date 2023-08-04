@@ -224,8 +224,6 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
             val reference: ResourceResolveConfigData = ResourceResolveConfigData(),
             @Comment("字体颜色 默认白色")
             val color: String = "#FFFFFF",
-            @Comment("字体不透明度")
-            val alpha: Double = 1.0
         )
 
         @Serializable

@@ -6,54 +6,24 @@ import io.tiangou.other.http.client
 import io.tiangou.other.image.skiko.*
 import io.tiangou.repository.UserCache
 import io.tiangou.utils.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runInterruptible
+import org.jetbrains.skia.Canvas
 import org.jetbrains.skia.Image
 import org.jetbrains.skia.ImageInfo
 import org.jetbrains.skia.Surface
+import java.io.File
 
-abstract class SkikoImageGenerator {
+object SkikoImageGenerator: ImageGenerator {
 
-
-    suspend fun storeImage(background: Image, imageList: List<Image>): ByteArray {
-        return runInterruptible(Dispatchers.IO) {
-            Surface.makeByImageAndProportion(background, 9, 16).afterClose { surface ->
-                imageList.forEachIndexed { index, it ->
-                    val lr = surface.width * 0.4f
-                    val imageWidth = surface.width - lr
-                    val imageHeight = it.height * (imageWidth / it.width)
-                    val top =
-                        (surface.height - imageHeight * imageList.size - surface.height * 0.05f * (imageList.size - 1)) / 2
-                    writeImageRect(
-                        it,
-                        imageWidth,
-                        imageHeight,
-                        lr / 2f,
-                        top + (imageHeight + surface.height * 0.05f) * index
-                    ).save()
+    override suspend fun generateDailyStoreImage(userCache: UserCache): ByteArray =
+        storeImage(userCache.customBackgroundFile) {
+                val width = (it.width - it.width * 0.4f).toInt()
+                val height = width / 2
+                SkinsPanelLayout.convert(StoreApiHelper.queryStoreFront(userCache)).map { data ->
+                    singleDailySkinImage(width, height, data)
                 }
-                surface.makeImageSnapshot().encodeToData()!!.bytes
             }
-        }
 
-    }
-
-}
-
-class SkikoSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : SkikoImageGenerator(), ImageHelper {
-
-    override suspend fun generate(): ByteArray {
-        val image = DrawImageApiAdpater.getSkikoBackground(userCache.customBackgroundFile).makeImageSnapshot()
-        val width = (image.width - image.width * 0.4f).toInt()
-        return storeImage(
-            image,
-            SkinsPanelLayout.convert(StoreApiHelper.queryStoreFront(userCache)).map {
-                singleSkinImage(width, width / 2, it)
-            }
-        )
-    }
-
-    private suspend fun singleSkinImage(width: Int, height: Int, data: SkinImageData): Image =
+    private suspend fun singleDailySkinImage(width: Int, height: Int, data: SkinImageData): Image =
         Surface.makeRaster(ImageInfo.makeN32Premul(width, height)).afterClose {
             if (data.backgroundColor?.isNotEmpty() == true) {
                 writeBackgroundColor(it, data.backgroundColor)
@@ -90,22 +60,17 @@ class SkikoSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : Sk
             it.makeImageSnapshot()
         }
 
-}
-
-class SkikoAccessoryImageGenerator(private val userCache: UserCache) : SkikoImageGenerator(), ImageHelper {
-
-    override suspend fun generate(): ByteArray {
-        val image = DrawImageApiAdpater.getSkikoBackground(userCache.customBackgroundFile).makeImageSnapshot()
-        val width = (image.width - image.width * 0.4f).toInt()
-        return storeImage(
-            image,
-            Accessory.convert(StoreApiHelper.queryStoreFront(userCache)).map {
-                singleSkinImage(width, width / 2, it)
+    override suspend fun generateAccessoryStoreImage(userCache: UserCache): ByteArray =
+        storeImage(userCache.customBackgroundFile) {
+                val width = (it.width - it.width * 0.4f).toInt()
+                val height = width / 2
+                val storeFront = StoreApiHelper.queryStoreFront(userCache)
+                AccessoryStore.convert(storeFront).map { data ->
+                    singleAccessoryItemImage(width, height, data)
+                }
             }
-        )
-    }
 
-    private suspend fun singleSkinImage(width: Int, height: Int, data: AccessoryImageData): Image =
+    private suspend fun singleAccessoryItemImage(width: Int, height: Int, data: AccessoryImageData): Image =
         Surface.makeRaster(ImageInfo.makeN32Premul(width, height)).afterClose {
             val textX: Float = width / 2f
             var heightY: Float = height / 2f
@@ -133,6 +98,27 @@ class SkikoAccessoryImageGenerator(private val userCache: UserCache) : SkikoImag
             }
             it.flush()
             it.makeImageSnapshot()
+        }
+
+    private suspend fun storeImage(backgroundFile: File?, block: suspend Canvas.(Surface) -> List<Image>): ByteArray =
+        DrawImageApiAdpater.drawSkikoOnBackground(backgroundFile) { surface ->
+            val imageList = block(this, surface)
+            imageList.forEachIndexed { index, it ->
+                val lr = surface.width * 0.4f
+                val imageWidth = surface.width - lr
+                val imageHeight = it.height * (imageWidth / it.width)
+                val top =
+                    (surface.height - imageHeight * imageList.size - surface.height * 0.05f * (imageList.size - 1)) / 2
+                writeImageRect(
+                    it,
+                    imageWidth,
+                    imageHeight,
+                    (lr / 2f),
+                    (top + (imageHeight + surface.height * 0.05f) * index)
+                )
+
+            }
+            surface.makeImageSnapshot().encodeToData()!!.bytes
         }
 
 }

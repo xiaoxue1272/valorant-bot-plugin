@@ -6,50 +6,24 @@ import io.tiangou.other.http.client
 import io.tiangou.other.image.awt.*
 import io.tiangou.repository.UserCache
 import io.tiangou.utils.*
+import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
+import java.io.File
 
 
-abstract class AwtImageGenerator {
+object AwtImageGenerator: ImageGenerator {
 
-    suspend fun storeImage(originImage: BufferedImage, imageList: List<BufferedImage>): ByteArray {
-        return originImage.makeByImageAndProportion(9, 16).apply {
-            createGraphics().apply {
-                imageList.forEachIndexed { index, it ->
-                    val lr = width * 0.4f
-                    val imageWidth = width - lr
-                    val imageHeight = it.height * (imageWidth / it.width)
-                    val top =
-                        (height - imageHeight * imageList.size - height * 0.05 * (imageList.size - 1)) / 2
-                    writeImageRect(
-                        it,
-                        imageWidth.toInt(),
-                        imageHeight.toInt(),
-                        (lr / 2f).toInt(),
-                        (top + (imageHeight + height * 0.05) * index).toInt()
-                    )
+    override suspend fun generateDailyStoreImage(userCache: UserCache): ByteArray =
+        storeImage(userCache.customBackgroundFile) {
+                val width = (it.width - it.width * 0.4f).toInt()
+                val height = width / 2
+                SkinsPanelLayout.convert(StoreApiHelper.queryStoreFront(userCache)).map { data ->
+                    singleDailySkinImage(width, height, data)
                 }
-            }.dispose()
-        }.writeImage()
-    }
-
-}
-
-class AwtSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : AwtImageGenerator(), ImageHelper {
-
-
-    override suspend fun generate(): ByteArray {
-        val image = DrawImageApiAdpater.getAwtBackground(userCache.customBackgroundFile)
-        val width = (image.width - image.width * 0.4f).toInt()
-        return storeImage(
-            image,
-            SkinsPanelLayout.convert(StoreApiHelper.queryStoreFront(userCache)).map {
-                singleSkinImage(width, width / 2, it)
             }
-        )
-    }
 
-    private suspend fun singleSkinImage(width: Int, height: Int, data: SkinImageData): BufferedImage {
+    private suspend fun singleDailySkinImage(width: Int, height: Int, data: SkinImageData): BufferedImage {
         val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
             .setBackgroundColor(data.backgroundColor)
         image.createGraphics().apply {
@@ -87,22 +61,17 @@ class AwtSkinsPanelLayoutImageGenerator(private val userCache: UserCache) : AwtI
         return image
     }
 
-}
-
-class AwtAccessoryImageGenerator(private val userCache: UserCache) : AwtImageGenerator(), ImageHelper {
-
-    override suspend fun generate(): ByteArray {
-        val image = DrawImageApiAdpater.getAwtBackground(userCache.customBackgroundFile)
-        val width = (image.width - image.width * 0.4f).toInt()
-        return storeImage(
-            image,
-            Accessory.convert(StoreApiHelper.queryStoreFront(userCache)).map {
-                singleSkinImage(width, width / 2, it)
+    override suspend fun generateAccessoryStoreImage(userCache: UserCache): ByteArray =
+        storeImage(userCache.customBackgroundFile) { image ->
+                val width = (image.width - image.width * 0.4f).toInt()
+                val height = width / 2
+                val storeFront = StoreApiHelper.queryStoreFront(userCache)
+                AccessoryStore.convert(storeFront).map { data ->
+                    singleAccessoryItemImage(width, height, data)
+                }
             }
-        )
-    }
 
-    private suspend fun singleSkinImage(width: Int, height: Int, data: AccessoryImageData): BufferedImage {
+    private suspend fun singleAccessoryItemImage(width: Int, height: Int, data: AccessoryImageData): BufferedImage {
         val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
             .setBackgroundColor("#70707080", 0.5f)
         image.createGraphics().apply {
@@ -133,5 +102,25 @@ class AwtAccessoryImageGenerator(private val userCache: UserCache) : AwtImageGen
         image.flush()
         return image
     }
+
+    private suspend fun storeImage(backgroundFile: File?, block: suspend Graphics2D.(BufferedImage) -> List<BufferedImage>): ByteArray =
+        DrawImageApiAdpater.drawAwtOnBackground(backgroundFile) { image ->
+            val imageList = block(this, image)
+            imageList.forEachIndexed { index, it ->
+                val lr = image.width * 0.4f
+                val imageWidth = image.width - lr
+                val imageHeight = it.height * (imageWidth / it.width)
+                val top =
+                    (image.height - imageHeight * imageList.size - image.height * 0.05 * (imageList.size - 1)) / 2
+                writeImageRect(
+                    it,
+                    imageWidth.toInt(),
+                    imageHeight.toInt(),
+                    (lr / 2f).toInt(),
+                    (top + (imageHeight + image.height * 0.05) * index).toInt()
+                )
+            }
+            image.writeImage()
+        }
 
 }

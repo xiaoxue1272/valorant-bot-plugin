@@ -1,6 +1,7 @@
 package io.tiangou.other.image.awt
 
 import io.tiangou.Global
+import io.tiangou.utils.DrawImageApiAdpater
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import java.awt.*
@@ -10,13 +11,7 @@ import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 
 
-private val customerFont: Font? = Global.drawImageConfig.font.reference.getResourceFile()?.let {
-    when (it.extension.uppercase()) {
-        "TTF", "OTF" -> Font.createFont(Font.TRUETYPE_FONT, it)
-        "PFB" -> Font.createFont(Font.TYPE1_FONT, it)
-        else -> null
-    }
-}
+private val customerFont: Font = DrawImageApiAdpater.getAwtFont()
 
 inline fun <reified T> BufferedImage.afterClose(block: Graphics2D.(BufferedImage) -> T): T {
     val graphics2D = createGraphics()
@@ -120,7 +115,7 @@ internal fun Graphics.writeImageRect(
 
 internal fun Graphics2D.setFont(fontSize: Int) {
     paint = rgbaConvert(Global.drawImageConfig.font.color, true)
-    font = (customerFont ?: font).deriveFont(fontSize.toFloat())
+    font = customerFont.deriveFont(fontSize.toFloat())
 }
 
 internal fun BufferedImage.setAlpha(alphaPercent: Float = 1f): BufferedImage {

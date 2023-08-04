@@ -34,7 +34,7 @@ object SkinsPanelLayout : ImageMediaDataAdapter<StoreFrontResponse, List<SkinIma
         }
 }
 
-object Accessory : ImageMediaDataAdapter<StoreFrontResponse, List<AccessoryImageData>> {
+object AccessoryStore : ImageMediaDataAdapter<StoreFrontResponse, List<AccessoryImageData>> {
 
     enum class AccessoryItemType(val value: String) {
         CURRENCY("Currency"),

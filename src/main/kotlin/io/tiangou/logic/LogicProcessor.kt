@@ -12,8 +12,8 @@ import io.tiangou.api.data.MultiFactorAuthRequest
 import io.tiangou.other.http.actions
 import io.tiangou.other.http.client
 import io.tiangou.repository.UserCache
-import io.tiangou.utils.GenerateImageType
-import io.tiangou.utils.ImageHelper
+import io.tiangou.utils.ImageGenerator
+import io.tiangou.utils.ImageGenerator.Companion.cache
 import io.tiangou.utils.StoreApiHelper
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
@@ -99,7 +99,7 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
     private suspend fun MessageEvent.afterLogin(userCache: UserCache, authUrl: String) {
         userCache.apply {
             StoreApiHelper.clean(this)
-            ImageHelper.clean(this)
+            ImageGenerator.clean(this)
             riotClientData.flushAccessToken(authUrl)
             riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
             riotClientData.puuid = RiotApi.PlayerInfo.execute().sub
@@ -121,7 +121,7 @@ object ChangeLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
                     riotClientData.shard = it.shard
                     riotClientData.region = it.region
                     currentEvent.reply("设置成功")
-                    ImageHelper.clean(userCache)
+                    ImageGenerator.clean(userCache)
                     StoreApiHelper.clean(userCache)
                 }
                 return
@@ -162,7 +162,10 @@ object QueryPlayerDailyStoreProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         reply("正在查询每日商店,请稍等")
-        val skinsPanelLayoutImage = ImageHelper.get(userCache, GenerateImageType.SKINS_PANEL_LAYOUT)
+        val skinsPanelLayoutImage = ImageGenerator.get().cache(
+            userCache.riotClientData.puuid!!,
+            ImageGenerator.cacheSkinsPanelLayoutImages
+        ) { generateDailyStoreImage(userCache) }
         replyImage(skinsPanelLayoutImage)
     }
 }
@@ -212,7 +215,10 @@ object QueryPlayerAccessoryStoreProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         reply("正在查询配件商店,请稍等")
-        val accessoryStoreImage = ImageHelper.get(userCache, GenerateImageType.ACCESSORY_STORE)
+        val accessoryStoreImage = ImageGenerator.get().cache(
+            userCache.riotClientData.puuid!!,
+            ImageGenerator.cacheAccessoryStoreImages
+        ) { generateAccessoryStoreImage(userCache) }
         replyImage(accessoryStoreImage)
     }
 }

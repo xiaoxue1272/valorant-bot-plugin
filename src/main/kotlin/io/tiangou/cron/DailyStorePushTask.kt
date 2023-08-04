@@ -5,8 +5,8 @@ import io.tiangou.reply
 import io.tiangou.repository.UserCache
 import io.tiangou.repository.UserCacheRepository
 import io.tiangou.uploadImage
-import io.tiangou.utils.GenerateImageType
-import io.tiangou.utils.ImageHelper
+import io.tiangou.utils.ImageGenerator
+import io.tiangou.utils.ImageGenerator.Companion.cache
 import kotlinx.serialization.Serializable
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.contact.Contact
@@ -33,8 +33,10 @@ class DailyStorePushTask(
                 val locations = userCache.filterPushLocations(entry.key, onlineBots)
                 locations.takeIf { it.isNotEmpty() }
                     ?.runCatching {
-                        val skinsPanelLayoutImage =
-                            ImageHelper.get(userCache, GenerateImageType.SKINS_PANEL_LAYOUT)
+                        val skinsPanelLayoutImage = ImageGenerator.get().cache(
+                            userCache.riotClientData.puuid!!,
+                            ImageGenerator.cacheSkinsPanelLayoutImages
+                        ) { generateDailyStoreImage(userCache) }
                         locations.forEach { location ->
                             location.contacts.forEach { contact ->
                                 uploadImage(skinsPanelLayoutImage, contact, location.bot)?.apply {
