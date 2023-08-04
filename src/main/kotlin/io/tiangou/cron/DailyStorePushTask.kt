@@ -5,8 +5,8 @@ import io.tiangou.reply
 import io.tiangou.repository.UserCache
 import io.tiangou.repository.UserCacheRepository
 import io.tiangou.uploadImage
-import io.tiangou.utils.ImageGenerator
-import io.tiangou.utils.ImageGenerator.Companion.cache
+import io.tiangou.other.image.generator.ImageGenerator
+import io.tiangou.other.image.generator.ImageGenerator.Companion.cache
 import kotlinx.serialization.Serializable
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.contact.Contact

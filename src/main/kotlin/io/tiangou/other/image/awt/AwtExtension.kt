@@ -1,7 +1,6 @@
 package io.tiangou.other.image.awt
 
 import io.tiangou.Global
-import io.tiangou.utils.DrawImageApiAdpater
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import java.awt.*
@@ -11,7 +10,14 @@ import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 
 
-private val customerFont: Font = DrawImageApiAdpater.getAwtFont()
+private val customerFont: Font? =
+    Global.drawImageConfig.font.reference.getResourceFile().let {
+        when (it?.extension?.uppercase()) {
+            "TTF", "OTF" -> Font.createFont(Font.TRUETYPE_FONT, it)
+            "PFB" -> Font.createFont(Font.TYPE1_FONT, it)
+            else -> null
+        }
+    }
 
 inline fun <reified T> BufferedImage.afterClose(block: Graphics2D.(BufferedImage) -> T): T {
     val graphics2D = createGraphics()
@@ -27,6 +33,9 @@ internal suspend fun readImage(bytes: ByteArray): BufferedImage {
         }
     }
 }
+
+internal suspend fun readBackgroundImage(bytes: ByteArray?): BufferedImage =
+    readImage(bytes ?: Global.drawImageConfig.background.reference.getResourceBytes()!!)
 
 internal suspend fun BufferedImage.writeImage(): ByteArray {
     return runInterruptible(Dispatchers.IO) {
@@ -61,7 +70,7 @@ internal fun BufferedImage.makeByImageAndProportion(wp: Int, hp: Int): BufferedI
         (height - areaHeight) / 2,
         areaWidth,
         areaHeight
-    )
+    ).setAlpha(Global.drawImageConfig.background.alpha.toFloat())
 }
 
 internal fun BufferedImage.setBackgroundColor(rgbaString: String? = null, alphaPercent: Float? = null): BufferedImage =
@@ -111,11 +120,6 @@ internal fun Graphics.writeImageRect(
         height,
         null
     )
-}
-
-internal fun Graphics2D.setFont(fontSize: Int) {
-    paint = rgbaConvert(Global.drawImageConfig.font.color, true)
-    font = customerFont.deriveFont(fontSize.toFloat())
 }
 
 internal fun BufferedImage.setAlpha(alphaPercent: Float = 1f): BufferedImage {
@@ -216,4 +220,10 @@ internal fun rgbaConvert(str: String, alphaPercent: Float = 1f): Color {
             (255 * alphaPercent).toInt()
         )
     } else throw IllegalArgumentException("str is not RGB or RGBA format")
+}
+
+internal fun Graphics2D.writeHorizontallyAlignTextLine(str: String, width: Int, fontSize: Int, y: Int) {
+    paint = rgbaConvert(Global.drawImageConfig.font.color, true)
+    font = (customerFont ?: font).deriveFont(fontSize.toFloat())
+    drawString(str, width / 2 - fontMetrics.stringWidth(str) / 2, y)
 }

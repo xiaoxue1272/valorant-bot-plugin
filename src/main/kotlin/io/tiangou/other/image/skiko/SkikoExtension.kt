@@ -1,11 +1,10 @@
 package io.tiangou.other.image.skiko
 
 import io.tiangou.Global
-import io.tiangou.utils.DrawImageApiAdpater
 import org.jetbrains.skia.*
 
 
-private val customerFont: Font = DrawImageApiAdpater.getSkikoFont()
+private val font: Font = Font(Global.drawImageConfig.font.reference.getResourceBytes()?.let { Data.makeFromBytes(it) }?.let { Typeface.makeFromData(it) })
 
 inline fun <reified T> Surface.afterClose(block: Canvas.(Surface) -> T): T {
     val result = block(canvas, this)
@@ -87,8 +86,8 @@ internal fun Canvas.writeBackgroundColor(surface: Surface, rgbaString: String, a
     })
 }
 
-internal fun Surface.Companion.makeByImageAndProportion(bytes: ByteArray, wp: Int, hp: Int, alpha: Float = 1f): Surface =
-    makeByImageAndProportion(Image.makeFromEncoded(bytes), wp, hp, alpha)
+internal fun Surface.Companion.makeByImageAndProportion(bytes: ByteArray?, wp: Int, hp: Int): Surface =
+    makeByImageAndProportion(Image.makeFromEncoded(bytes?: Global.drawImageConfig.background.reference.getResourceBytes()!!), wp, hp, Global.drawImageConfig.background.alpha.toFloat())
 
 internal fun Surface.Companion.makeByImageAndProportion(image: Image, wp: Int, hp: Int, alpha: Float = 1f): Surface {
     val maxSide = if (image.width > image.height) image.width else image.height
@@ -136,12 +135,13 @@ internal fun rgbaConvert(str: String): Int {
     }
 }
 
-internal fun makeTextLine(text: String, fontSize: Float) = TextLine.make(text, customerFont.makeWithSize(fontSize))
-
-internal fun Canvas.writeTextLine(textLine: TextLine, x: Float, y: Float) =
-    drawTextLine(textLine, x, y, Paint().apply {
+internal fun Canvas.writeHorizontallyAlignTextLine(str: String, width: Int, fontSize: Float, y: Float) {
+    val textLine = TextLine.make(str, font.makeWithSize(fontSize))
+    drawTextLine(textLine, width / 2 - textLine.width / 2, y, Paint().apply {
         color = rgbaConvert(Global.drawImageConfig.font.color)
     })
+}
+
 
 
 

@@ -235,7 +235,18 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
             ),
             @Comment("背景图片不透明度")
             val alpha: Double = 1.0
-        )
+        ) {
+
+            init {
+                reference.getResourceBytes()
+                    ?: reference.apply {
+                        type = ResourceReferenceType.URL
+                        value = "https://game.gtimg.cn/images/val/wallpaper/Logo_Wallpapers/VALORANT_Logo_V.jpg"
+                        initResource()
+                    }
+            }
+
+        }
 
 
     }

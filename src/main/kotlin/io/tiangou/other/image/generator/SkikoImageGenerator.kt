@@ -1,4 +1,4 @@
-package io.tiangou.logic.image.generator
+package io.tiangou.other.image.generator
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -49,12 +49,7 @@ object SkikoImageGenerator: ImageGenerator {
             }
             if (data.skinName?.isNotEmpty() == true) {
                 val fontSize = height / 12f
-                val textLine = makeTextLine(data.skinName, fontSize)
-                writeTextLine(
-                    textLine,
-                    width.toFloat() / 2f - textLine.width / 2f,
-                    height.toFloat() / 2f + fontSize * 5,
-                )
+                writeHorizontallyAlignTextLine(data.skinName, width, fontSize, height.toFloat() / 2f + fontSize * 5)
             }
             it.flush()
             it.makeImageSnapshot()
@@ -72,7 +67,6 @@ object SkikoImageGenerator: ImageGenerator {
 
     private suspend fun singleAccessoryItemImage(width: Int, height: Int, data: AccessoryImageData): Image =
         Surface.makeRaster(ImageInfo.makeN32Premul(width, height)).afterClose {
-            val textX: Float = width / 2f
             var heightY: Float = height / 2f
             val fontSize = height / 12f
             writeBackgroundColor(it, "#707070", 0.5f)
@@ -81,44 +75,35 @@ object SkikoImageGenerator: ImageGenerator {
                 heightY = height - (fontSize + fontSize / 5)
             }
             if (data.itemName?.isNotEmpty() == true) {
-                val textLine = makeTextLine(data.itemName, fontSize)
-                writeTextLine(
-                    textLine,
-                    textX - textLine.width / 2f,
-                    heightY
-                )
+                writeHorizontallyAlignTextLine(data.itemName, width, fontSize, heightY)
             }
             if (data.contractName?.isNotEmpty() == true) {
-                val textLine = makeTextLine(data.contractName, fontSize)
-                writeTextLine(
-                    textLine,
-                    textX - textLine.width / 2f,
-                    height.toFloat() - fontSize / 5,
-                )
+                writeHorizontallyAlignTextLine(data.contractName, width, fontSize, height.toFloat() - fontSize / 5)
             }
             it.flush()
             it.makeImageSnapshot()
         }
 
     private suspend fun storeImage(backgroundFile: File?, block: suspend Canvas.(Surface) -> List<Image>): ByteArray =
-        DrawImageApiAdpater.drawSkikoOnBackground(backgroundFile) { surface ->
-            val imageList = block(this, surface)
-            imageList.forEachIndexed { index, it ->
-                val lr = surface.width * 0.4f
-                val imageWidth = surface.width - lr
-                val imageHeight = it.height * (imageWidth / it.width)
-                val top =
-                    (surface.height - imageHeight * imageList.size - surface.height * 0.05f * (imageList.size - 1)) / 2
-                writeImageRect(
-                    it,
-                    imageWidth,
-                    imageHeight,
-                    (lr / 2f),
-                    (top + (imageHeight + surface.height * 0.05f) * index)
-                )
+        Surface.makeByImageAndProportion(backgroundFile?.readBytes(), ImageGenerator.wp, ImageGenerator.hp)
+            .afterClose { surface ->
+                val imageList = block(this, surface)
+                imageList.forEachIndexed { index, it ->
+                    val lr = surface.width * 0.4f
+                    val imageWidth = surface.width - lr
+                    val imageHeight = it.height * (imageWidth / it.width)
+                    val top =
+                        (surface.height - imageHeight * imageList.size - surface.height * 0.05f * (imageList.size - 1)) / 2
+                    writeImageRect(
+                        it,
+                        imageWidth,
+                        imageHeight,
+                        (lr / 2f),
+                        (top + (imageHeight + surface.height * 0.05f) * index)
+                    )
 
+                }
+                surface.makeImageSnapshot().encodeToData()!!.bytes
             }
-            surface.makeImageSnapshot().encodeToData()!!.bytes
-        }
 
 }

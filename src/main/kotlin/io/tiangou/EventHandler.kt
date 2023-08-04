@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package io.tiangou
 
 import io.tiangou.repository.UserCacheRepository

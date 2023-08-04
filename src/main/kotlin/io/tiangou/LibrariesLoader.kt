@@ -70,7 +70,7 @@ object SkikoLibrariesLoader : LibrariesLoader() {
 
     private val target = "skiko-awt-runtime-$hostId"
 
-    private const val version = "0.7.9"
+    private const val version = "0.7.72"
 
     private val downloadUrl = "https://maven.pkg.jetbrains.space/public/p/compose/dev" +
             packageSequence.joinToString("/", prefix = "/", postfix = "/") +

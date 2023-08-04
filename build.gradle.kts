@@ -12,7 +12,7 @@ val kotlinVersion = "1.8.20"
 val ktorVersion = "2.2.4"
 val seleniumVersion = "4.9.1"
 val freemarkerVersion = "2.3.32"
-val skikoVersion = "0.7.9"
+val skikoVersion = "0.7.72"
 val serializationVersion = "1.5.1"
 
 

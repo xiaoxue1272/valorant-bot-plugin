@@ -12,8 +12,8 @@ import io.tiangou.api.data.MultiFactorAuthRequest
 import io.tiangou.other.http.actions
 import io.tiangou.other.http.client
 import io.tiangou.repository.UserCache
-import io.tiangou.utils.ImageGenerator
-import io.tiangou.utils.ImageGenerator.Companion.cache
+import io.tiangou.other.image.generator.ImageGenerator
+import io.tiangou.other.image.generator.ImageGenerator.Companion.cache
 import io.tiangou.utils.StoreApiHelper
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
