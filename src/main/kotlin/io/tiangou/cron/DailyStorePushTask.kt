@@ -1,12 +1,13 @@
 package io.tiangou.cron
 
 import io.tiangou.isVisitAllow
+import io.tiangou.other.image.generator.GenerateStoreImageType
+import io.tiangou.other.image.generator.ImageGenerator
+import io.tiangou.other.image.generator.ImageGenerator.Companion.cache
 import io.tiangou.reply
 import io.tiangou.repository.UserCache
 import io.tiangou.repository.UserCacheRepository
 import io.tiangou.uploadImage
-import io.tiangou.other.image.generator.ImageGenerator
-import io.tiangou.other.image.generator.ImageGenerator.Companion.cache
 import kotlinx.serialization.Serializable
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.contact.Contact
@@ -36,7 +37,7 @@ class DailyStorePushTask(
                         val skinsPanelLayoutImage = ImageGenerator.get().cache(
                             userCache.riotClientData.puuid!!,
                             ImageGenerator.cacheSkinsPanelLayoutImages
-                        ) { generateDailyStoreImage(userCache) }
+                        ) { storeImage(userCache, GenerateStoreImageType.SKINS_PANEL_LAYOUT) }
                         locations.forEach { location ->
                             location.contacts.forEach { contact ->
                                 uploadImage(skinsPanelLayoutImage, contact, location.bot)?.apply {

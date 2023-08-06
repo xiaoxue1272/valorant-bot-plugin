@@ -5,11 +5,9 @@ import io.tiangou.Global
 import io.tiangou.repository.UserCache
 import java.util.concurrent.ConcurrentHashMap
 
-internal interface ImageGenerator {
+interface ImageGenerator {
 
-    suspend fun generateDailyStoreImage(userCache: UserCache): ByteArray
-
-    suspend fun generateAccessoryStoreImage(userCache: UserCache): ByteArray
+    suspend fun storeImage(userCache: UserCache, type: GenerateStoreImageType): ByteArray
 
     companion object {
 
@@ -27,7 +25,11 @@ internal interface ImageGenerator {
                 DrawImageApiEnum.AWT -> AwtImageGenerator
             }
 
-        suspend fun ImageGenerator.cache(key: String, cacheImages: MutableMap<String, ByteArray>, block: suspend ImageGenerator.() -> ByteArray) =
+        suspend fun ImageGenerator.cache(
+            key: String,
+            cacheImages: MutableMap<String, ByteArray>,
+            block: suspend ImageGenerator.() -> ByteArray
+        ) =
             cacheImages[key] ?: block().apply { cacheImages[key] = this }
 
         fun clean(userCache: UserCache) {
@@ -40,5 +42,15 @@ internal interface ImageGenerator {
         }
 
     }
+
+}
+
+/**
+ * 生成图片类型
+ */
+enum class GenerateStoreImageType {
+
+    SKINS_PANEL_LAYOUT,
+    ACCESSORY_STORE,
 
 }

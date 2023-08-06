@@ -21,6 +21,7 @@ private val customerFont: Font? =
 
 inline fun <reified T> BufferedImage.afterClose(block: Graphics2D.(BufferedImage) -> T): T {
     val graphics2D = createGraphics()
+    graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     val result = block(graphics2D, this)
     graphics2D.dispose()
     return result

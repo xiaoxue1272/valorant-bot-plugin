@@ -177,14 +177,16 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
     data class EventConfigData(
         @Comment("当输入不正确时发出警告(为true时回复未知操作,false不回复消息)")
         val isWarnOnInputNotFound: Boolean = true,
-        @Comment("""
+        @Comment(
+            """
             配置群内消息监听策略
             AT: 监听AT消息, 
             AT_AND_QUOTE_REPLY: 监听AT和引用回复消息, 
             QUOTE_REPLY: 监听引用回复消息, 
             NONE: 不监听群内消息, ALL: 监听所有群消息
             默认为: AT_AND_QUOTE_REPLY, 就是监听 AT消息和引用回复消息.
-        """)
+        """
+        )
         val groupMessageHandleStrategy: GroupMessageHandleEnum = GroupMessageHandleEnum.AT_AND_QUOTE_REPLY,
         @Comment("是否自动接受好友申请")
         val autoAcceptFriendRequest: Boolean = true,
@@ -204,11 +206,13 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
 
     @Serializable
     data class DrawImageConfig(
-        @Comment("""
+        @Comment(
+            """
                 SKIKO: 使用Skiko进行绘图(某些CPU架构可能不支持)
                 AWT: 使用Java内置GUI进行绘图
                 默认为: SKIKO
-            """)
+            """
+        )
         val api: DrawImageApiEnum = DrawImageApiEnum.SKIKO,
         @Comment("字体相关配置")
         val font: FontConfigData = FontConfigData(),
@@ -270,13 +274,15 @@ enum class DrawImageApiEnum {
 
 @Serializable
 data class ResourceResolveConfigData(
-    @Comment("""
+    @Comment(
+        """
                 背景图片的地址类型
                 DISK: 本地磁盘下的路径
                 URL: Url类型的路径 (最常见的也就是 http://xxx.xxx, https://xxx.xxx, file://xxx/xxx)
                 当类型为URL时,会在本插件的 data/cache/ 目录下缓存默认背景图片.
                 主要目的是节省一些可能的非必要网络IO 并且会将 type修改为 DISK, value 也会修改为文件对应的绝对路径.
-            """)
+            """
+    )
     var type: ResourceReferenceType? = null,
     @Comment("资源路径值")
     var value: String? = null

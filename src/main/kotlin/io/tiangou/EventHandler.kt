@@ -70,6 +70,7 @@ object EventHandler : SimpleListenerHost() {
                             log.warning("qq user:[${sender.id}]", it)
                             reply("${it.message}")
                         }
+
                         else -> {
                             log.warning("processing valorant bot logic throw throwable", it)
                             reply("error: ${it.message}")

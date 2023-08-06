@@ -6,22 +6,47 @@ import io.tiangou.other.http.client
 import io.tiangou.other.image.awt.*
 import io.tiangou.repository.UserCache
 import io.tiangou.utils.*
-import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
-import java.io.File
 
 
-object AwtImageGenerator: ImageGenerator {
+object AwtImageGenerator : ImageGenerator {
 
-    override suspend fun generateDailyStoreImage(userCache: UserCache): ByteArray =
-        storeImage(userCache.customBackgroundFile) {
-                val width = (it.width - it.width * 0.4f).toInt()
+    override suspend fun storeImage(userCache: UserCache, type: GenerateStoreImageType): ByteArray =
+        readBackgroundImage(userCache.customBackgroundFile?.readBytes())
+            .makeByImageAndProportion(ImageGenerator.wp, ImageGenerator.hp)
+            .afterClose { image ->
+                val storeFront = StoreApiHelper.queryStoreFront(userCache)
+                val width = (image.width - image.width * 0.4f).toInt()
                 val height = width / 2
-                SkinsPanelLayout.convert(StoreApiHelper.queryStoreFront(userCache)).map { data ->
-                    singleDailySkinImage(width, height, data)
+                val imageList = when (type) {
+                    GenerateStoreImageType.SKINS_PANEL_LAYOUT ->
+                        SkinsPanelLayout.convert(storeFront).map { data ->
+                            singleDailySkinImage(width, height, data)
+                        }
+
+                    GenerateStoreImageType.ACCESSORY_STORE ->
+                        AccessoryStore.convert(storeFront).map { data ->
+                            singleAccessoryItemImage(width, height, data)
+                        }
                 }
+                imageList.forEachIndexed { index, it ->
+                    val lr = image.width * 0.4f
+                    val imageWidth = image.width - lr
+                    val imageHeight = it.height * (imageWidth / it.width)
+                    val top =
+                        (image.height - imageHeight * imageList.size - image.height * 0.05 * (imageList.size - 1)) / 2
+                    writeImageRect(
+                        it,
+                        imageWidth.toInt(),
+                        imageHeight.toInt(),
+                        (lr / 2f).toInt(),
+                        (top + (imageHeight + image.height * 0.05) * index).toInt()
+                    )
+                }
+                image.writeImage()
             }
+
 
     private suspend fun singleDailySkinImage(width: Int, height: Int, data: SkinImageData): BufferedImage {
         val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
@@ -56,16 +81,6 @@ object AwtImageGenerator: ImageGenerator {
         return image
     }
 
-    override suspend fun generateAccessoryStoreImage(userCache: UserCache): ByteArray =
-        storeImage(userCache.customBackgroundFile) { image ->
-                val width = (image.width - image.width * 0.4f).toInt()
-                val height = width / 2
-                val storeFront = StoreApiHelper.queryStoreFront(userCache)
-                AccessoryStore.convert(storeFront).map { data ->
-                    singleAccessoryItemImage(width, height, data)
-                }
-            }
-
     private suspend fun singleAccessoryItemImage(width: Int, height: Int, data: AccessoryImageData): BufferedImage {
         val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
             .setBackgroundColor("#70707080", 0.5f)
@@ -87,27 +102,5 @@ object AwtImageGenerator: ImageGenerator {
         image.flush()
         return image
     }
-
-    private suspend fun storeImage(backgroundFile: File?, block: suspend Graphics2D.(BufferedImage) -> List<BufferedImage>): ByteArray =
-        readBackgroundImage(backgroundFile?.readBytes())
-            .makeByImageAndProportion(ImageGenerator.wp, ImageGenerator.hp)
-            .afterClose { image ->
-                val imageList = block(this, image)
-                imageList.forEachIndexed { index, it ->
-                    val lr = image.width * 0.4f
-                    val imageWidth = image.width - lr
-                    val imageHeight = it.height * (imageWidth / it.width)
-                    val top =
-                        (image.height - imageHeight * imageList.size - image.height * 0.05 * (imageList.size - 1)) / 2
-                    writeImageRect(
-                        it,
-                        imageWidth.toInt(),
-                        imageHeight.toInt(),
-                        (lr / 2f).toInt(),
-                        (top + (imageHeight + image.height * 0.05) * index).toInt()
-                    )
-                }
-                image.writeImage()
-        }
 
 }

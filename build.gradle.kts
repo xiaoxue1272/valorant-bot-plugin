@@ -18,6 +18,7 @@ val serializationVersion = "1.5.1"
 
 mirai {
     jvmTarget = JavaVersion.VERSION_1_8
+    consoleVersion = "2.14.0"
 }
 
 repositories {

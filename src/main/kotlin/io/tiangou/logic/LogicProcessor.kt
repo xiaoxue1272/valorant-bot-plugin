@@ -11,9 +11,10 @@ import io.tiangou.api.data.AuthResponse
 import io.tiangou.api.data.MultiFactorAuthRequest
 import io.tiangou.other.http.actions
 import io.tiangou.other.http.client
-import io.tiangou.repository.UserCache
+import io.tiangou.other.image.generator.GenerateStoreImageType
 import io.tiangou.other.image.generator.ImageGenerator
 import io.tiangou.other.image.generator.ImageGenerator.Companion.cache
+import io.tiangou.repository.UserCache
 import io.tiangou.utils.StoreApiHelper
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
@@ -165,7 +166,7 @@ object QueryPlayerDailyStoreProcessor : LogicProcessor<MessageEvent> {
         val skinsPanelLayoutImage = ImageGenerator.get().cache(
             userCache.riotClientData.puuid!!,
             ImageGenerator.cacheSkinsPanelLayoutImages
-        ) { generateDailyStoreImage(userCache) }
+        ) { storeImage(userCache, GenerateStoreImageType.SKINS_PANEL_LAYOUT) }
         replyImage(skinsPanelLayoutImage)
     }
 }
@@ -218,7 +219,7 @@ object QueryPlayerAccessoryStoreProcessor : LogicProcessor<MessageEvent> {
         val accessoryStoreImage = ImageGenerator.get().cache(
             userCache.riotClientData.puuid!!,
             ImageGenerator.cacheAccessoryStoreImages
-        ) { generateAccessoryStoreImage(userCache) }
+        ) { storeImage(userCache, GenerateStoreImageType.ACCESSORY_STORE) }
         replyImage(accessoryStoreImage)
     }
 }

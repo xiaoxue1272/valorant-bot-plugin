@@ -4,7 +4,8 @@ import io.tiangou.Global
 import org.jetbrains.skia.*
 
 
-private val font: Font = Font(Global.drawImageConfig.font.reference.getResourceBytes()?.let { Data.makeFromBytes(it) }?.let { Typeface.makeFromData(it) })
+private val font: Font = Font(Global.drawImageConfig.font.reference.getResourceBytes()?.let { Data.makeFromBytes(it) }
+    ?.let { Typeface.makeFromData(it) })
 
 inline fun <reified T> Surface.afterClose(block: Canvas.(Surface) -> T): T {
     val result = block(canvas, this)
@@ -87,7 +88,11 @@ internal fun Canvas.writeBackgroundColor(surface: Surface, rgbaString: String, a
 }
 
 internal fun Surface.Companion.makeByImageAndProportion(bytes: ByteArray?, wp: Int, hp: Int): Surface =
-    makeByImageAndProportion(Image.makeFromEncoded(bytes?: Global.drawImageConfig.background.reference.getResourceBytes()!!), wp, hp, Global.drawImageConfig.background.alpha.toFloat())
+    makeByImageAndProportion(
+        Image.makeFromEncoded(
+            bytes ?: Global.drawImageConfig.background.reference.getResourceBytes()!!
+        ), wp, hp, Global.drawImageConfig.background.alpha.toFloat()
+    )
 
 internal fun Surface.Companion.makeByImageAndProportion(image: Image, wp: Int, hp: Int, alpha: Float = 1f): Surface {
     val maxSide = if (image.width > image.height) image.width else image.height
