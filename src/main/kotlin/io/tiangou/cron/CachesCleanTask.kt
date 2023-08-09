@@ -1,15 +1,16 @@
 package io.tiangou.cron
 
 import io.ktor.util.date.*
-import io.tiangou.other.image.generator.ImageGenerator
+import io.tiangou.other.image.GenerateStoreImageType
+import io.tiangou.other.image.ImageGenerator
 import io.tiangou.repository.UserCacheRepository
 import io.tiangou.utils.StoreApiHelper
 import java.time.ZoneId
 import java.util.*
 
-object StoreCachesCleanTask : Task() {
+object CachesCleanTask : Task() {
 
-    override val description: String = "生成缓存图片清理"
+    override val description: String = "生成缓存清理"
 
     override val timeZone: TimeZone = TimeZone.getTimeZone(ZoneId.of("GMT+8"))
 
@@ -26,10 +27,10 @@ object StoreCachesCleanTask : Task() {
     override suspend fun execute() {
         UserCacheRepository.getAllUserCache().forEach {
             it.value.synchronized {
-                StoreApiHelper.storeFronts.clear()
-                ImageGenerator.cacheSkinsPanelLayoutImages.clear()
+                StoreApiHelper.clean(this)
+                ImageGenerator.clean(this, GenerateStoreImageType.SKINS_PANEL_LAYOUT)
                 if (GMTDate().dayOfWeek == WeekDay.WEDNESDAY) {
-                    ImageGenerator.cacheAccessoryStoreImages.clear()
+                    ImageGenerator.clean(this, GenerateStoreImageType.ACCESSORY_STORE)
                 }
             }
         }
@@ -39,6 +40,6 @@ object StoreCachesCleanTask : Task() {
         super.enable()
         log.info("已启用任务 [${this::class.simpleName}]")
         log.warning("请注意,该任务为后台任务,无法停用,启用,手动触发和修改")
-        job?.invokeOnCompletion { if (it != null) log.info("已取消任务 [StoreCachesCleanTask]") }
+        job?.invokeOnCompletion { if (it != null) log.info("已取消任务 [CachesCleanTask]") }
     }
 }

@@ -1,9 +1,8 @@
 package io.tiangou.cron
 
 import io.tiangou.isVisitAllow
-import io.tiangou.other.image.generator.GenerateStoreImageType
-import io.tiangou.other.image.generator.ImageGenerator
-import io.tiangou.other.image.generator.ImageGenerator.Companion.cache
+import io.tiangou.other.image.GenerateStoreImageType
+import io.tiangou.other.image.ImageGenerator
 import io.tiangou.reply
 import io.tiangou.repository.UserCache
 import io.tiangou.repository.UserCacheRepository
@@ -34,10 +33,10 @@ class DailyStorePushTask(
                 val locations = userCache.filterPushLocations(entry.key, onlineBots)
                 locations.takeIf { it.isNotEmpty() }
                     ?.runCatching {
-                        val skinsPanelLayoutImage = ImageGenerator.get().cache(
-                            userCache.riotClientData.puuid!!,
-                            ImageGenerator.cacheSkinsPanelLayoutImages
-                        ) { storeImage(userCache, GenerateStoreImageType.SKINS_PANEL_LAYOUT) }
+                        val skinsPanelLayoutImage = ImageGenerator.getCacheOrGenerate(
+                            userCache,
+                            GenerateStoreImageType.SKINS_PANEL_LAYOUT,
+                        ) { storeImage(userCache, it) }
                         locations.forEach { location ->
                             location.contacts.forEach { contact ->
                                 uploadImage(skinsPanelLayoutImage, contact, location.bot)?.apply {

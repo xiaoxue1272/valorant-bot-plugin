@@ -11,9 +11,8 @@ import io.tiangou.api.data.AuthResponse
 import io.tiangou.api.data.MultiFactorAuthRequest
 import io.tiangou.other.http.actions
 import io.tiangou.other.http.client
-import io.tiangou.other.image.generator.GenerateStoreImageType
-import io.tiangou.other.image.generator.ImageGenerator
-import io.tiangou.other.image.generator.ImageGenerator.Companion.cache
+import io.tiangou.other.image.GenerateStoreImageType
+import io.tiangou.other.image.ImageGenerator
 import io.tiangou.repository.UserCache
 import io.tiangou.utils.StoreApiHelper
 import kotlinx.coroutines.runBlocking
@@ -29,7 +28,6 @@ import net.mamoe.mirai.message.data.Image
 import net.mamoe.mirai.message.data.Image.Key.queryUrl
 import net.mamoe.mirai.message.data.ImageType
 import net.mamoe.mirai.message.data.firstIsInstanceOrNull
-import java.awt.SystemColor.text
 
 @Serializable
 sealed interface LogicProcessor<T : MessageEvent> {
@@ -61,7 +59,7 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
         currentEvent = nextMessageEvent()
         val password = currentEvent.toText()
         currentEvent.reply("请稍等,正在登录")
-        userCache.synchronized {
+        userCache.synchronous {
             riotClientData.actions {
                 // 因为cookie问题 如果是重复登录的话 登录不上去 所以清空
                 cookies.clear()
@@ -118,7 +116,7 @@ object ChangeLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
         val result = currentEvent.toText()
         ServerLocationEnum.values().forEach {
             if (it.value == result) {
-                userCache.synchronized {
+                userCache.synchronous {
                     riotClientData.shard = it.shard
                     riotClientData.region = it.region
                     currentEvent.reply("设置成功")
@@ -163,10 +161,10 @@ object QueryPlayerDailyStoreProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         reply("正在查询每日商店,请稍等")
-        val skinsPanelLayoutImage = ImageGenerator.get().cache(
-            userCache.riotClientData.puuid!!,
-            ImageGenerator.cacheSkinsPanelLayoutImages
-        ) { storeImage(userCache, GenerateStoreImageType.SKINS_PANEL_LAYOUT) }
+        val skinsPanelLayoutImage = ImageGenerator.getCacheOrGenerate(
+            userCache,
+            GenerateStoreImageType.SKINS_PANEL_LAYOUT,
+        ) { storeImage(userCache, it) }
         replyImage(skinsPanelLayoutImage)
     }
 }
@@ -174,7 +172,7 @@ object QueryPlayerDailyStoreProcessor : LogicProcessor<MessageEvent> {
 @Serializable
 object SubscribeTaskDailyStoreProcessor : LogicProcessor<MessageEvent> {
     override suspend fun MessageEvent.process(userCache: UserCache) {
-        userCache.synchronized {
+        userCache.synchronous {
             subscribeDailyStore = !subscribeDailyStore
             val status: String = if (subscribeDailyStore) "开启" else "关闭"
             reply("已将你的每日商店推送状态设置为:$status")
@@ -189,7 +187,7 @@ object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
         reply("请上传背景图片(若要回复为默认背景,请发送\"恢复默认\")")
         nextMessageEvent().apply {
             if (toText() == "恢复默认") {
-                userCache.synchronized {
+                userCache.synchronous {
                     customBackgroundFile?.delete()
                     customBackgroundFile = null
                 }
@@ -200,10 +198,11 @@ object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
                         ?.toAbsoluteFile(subject.cast())?.takeIf { ImageType.matchOrNull(it.extension) != null }
                         ?.getUrl()
                     ?: reply("无法解析图片,请确认图片后缀无误,推荐上传PNG或JPG格式的图片").let { return }
-                userCache.synchronized {
+                userCache.synchronous {
                     customBackgroundFile = ValorantBotPlugin.dataFolder.resolve("${sender.id}_background.bkg")
                         .apply { writeBytes(client.get(downloadUrl).readBytes()) }
                 }
+                ImageGenerator.clean(userCache)
                 reply("上传成功")
             }
         }
@@ -216,10 +215,10 @@ object QueryPlayerAccessoryStoreProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         reply("正在查询配件商店,请稍等")
-        val accessoryStoreImage = ImageGenerator.get().cache(
-            userCache.riotClientData.puuid!!,
-            ImageGenerator.cacheAccessoryStoreImages
-        ) { storeImage(userCache, GenerateStoreImageType.ACCESSORY_STORE) }
+        val accessoryStoreImage = ImageGenerator.getCacheOrGenerate(
+            userCache,
+            GenerateStoreImageType.ACCESSORY_STORE,
+        ) { storeImage(userCache, it) }
         replyImage(accessoryStoreImage)
     }
 }
@@ -269,6 +268,6 @@ object AddCurrentLocateToDailyStorePushLocatesProcessor : LogicProcessor<Message
         } else {
             userCache.dailyStorePushLocates.remove(subject.id)
         }
-        reply("已将当前地点[${text}]的推送状态设置为:${if (isEnabledLocate) "启用" else "停用"}")
+        reply("已将当前地点[${subject.id}]的推送状态设置为:${if (isEnabledLocate) "启用" else "停用"}")
     }
 }

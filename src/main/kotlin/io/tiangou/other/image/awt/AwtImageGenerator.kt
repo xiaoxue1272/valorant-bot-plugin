@@ -1,9 +1,10 @@
-package io.tiangou.other.image.generator
+package io.tiangou.other.image.awt
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.tiangou.other.http.client
-import io.tiangou.other.image.awt.*
+import io.tiangou.other.image.GenerateStoreImageType
+import io.tiangou.other.image.ImageGenerator
 import io.tiangou.repository.UserCache
 import io.tiangou.utils.*
 import java.awt.RenderingHints

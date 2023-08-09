@@ -64,4 +64,4 @@ v0.7.0
 3.删除了指令等待时间超时自动退出的逻辑,有需要请手动退出
 4.现在可以自定义绘图使用的字体文件
 5.优化了AWT SKIKO绘图逻辑
-// todo 6.生成图片缓存结构优化 (缓存文件 or 内存, and 数据结构) ImageGenerator.cache()
+6.生成图片缓存结构优化 (缓存文件 or 内存, and 数据结构) ImageGenerator.cache()

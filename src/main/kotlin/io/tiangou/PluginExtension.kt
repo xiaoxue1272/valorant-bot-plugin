@@ -29,7 +29,6 @@ import net.mamoe.mirai.event.nextEvent
 import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.message.data.Image.Key.isUploaded
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
-import net.mamoe.yamlkt.Comment
 import java.io.File
 import java.net.URI
 import java.nio.file.Path
@@ -175,9 +174,9 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
 
     @Serializable
     data class EventConfigData(
-        @Comment("当输入不正确时发出警告(为true时回复未知操作,false不回复消息)")
+        @ValueDescription("当输入不正确时发出警告(为true时回复未知操作,false不回复消息)")
         val isWarnOnInputNotFound: Boolean = true,
-        @Comment(
+        @ValueDescription(
             """
             配置群内消息监听策略
             AT: 监听AT消息, 
@@ -188,25 +187,25 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
         """
         )
         val groupMessageHandleStrategy: GroupMessageHandleEnum = GroupMessageHandleEnum.AT_AND_QUOTE_REPLY,
-        @Comment("是否自动接受好友申请")
+        @ValueDescription("是否自动接受好友申请")
         val autoAcceptFriendRequest: Boolean = true,
-        @Comment("是否自动接受群邀请")
+        @ValueDescription("是否自动接受群邀请")
         val autoAcceptGroupRequest: Boolean = true,
-        @Comment("退出指令执行的关键字 默认为[退出]")
+        @ValueDescription("退出指令执行的关键字 默认为[退出]")
         val exitLogicCommand: String = "退出"
     )
 
     @Serializable
-    data class DatabaseConfigData(
-        @Comment("数据库连接JDBC URL")
+    data class DatabaseConfigData internal constructor (
+        @ValueDescription("数据库连接JDBC URL")
         val jdbcUrl: String = "jdbc:sqlite:${ValorantBotPlugin.dataFolder}${File.separator}ValorantPlugin.DB3",
-        @Comment("是否在插件加载时就初始化数据库数据")
+        @ValueDescription("是否在插件加载时就初始化数据库数据")
         val isInitOnEnable: Boolean = true
     )
 
     @Serializable
-    data class DrawImageConfig(
-        @Comment(
+    data class DrawImageConfig internal constructor (
+        @ValueDescription(
             """
                 SKIKO: 使用Skiko进行绘图(某些CPU架构可能不支持)
                 AWT: 使用Java内置GUI进行绘图
@@ -214,30 +213,32 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
             """
         )
         val api: DrawImageApiEnum = DrawImageApiEnum.SKIKO,
-        @Comment("字体相关配置")
+        @ValueDescription("字体相关配置")
         val font: FontConfigData = FontConfigData(),
-        @Comment("GUI库类存放路径(目前仅SKIKO使用,AWT不使用)")
+        @ValueDescription("GUI库类存放路径(目前仅SKIKO使用,AWT不使用)")
         val libDictionary: Path = PluginManager.pluginLibrariesPath,
-        @Comment("背景图片相关配置")
-        val background: BackgroundConfigData = BackgroundConfigData()
+        @ValueDescription("背景图片相关配置")
+        val background: BackgroundConfigData = BackgroundConfigData(),
+        @ValueDescription("生成的图片缓存存放类型 内存 or 磁盘")
+        val cache: CacheType = CacheType.MEMORY
     ) {
 
         @Serializable
-        data class FontConfigData(
-            @Comment("字体资源路径配置")
+        data class FontConfigData internal constructor (
+            @ValueDescription("字体资源路径配置")
             val reference: ResourceResolveConfigData = ResourceResolveConfigData(),
-            @Comment("字体颜色 默认白色")
+            @ValueDescription("字体颜色 默认白色")
             val color: String = "#FFFFFF",
         )
 
         @Serializable
-        data class BackgroundConfigData(
-            @Comment("默认背景资源路径配置")
+        data class BackgroundConfigData internal constructor (
+            @ValueDescription("默认背景资源路径配置")
             val reference: ResourceResolveConfigData = ResourceResolveConfigData(
                 ResourceReferenceType.URL,
                 "https://game.gtimg.cn/images/val/wallpaper/Logo_Wallpapers/VALORANT_Logo_V.jpg"
             ),
-            @Comment("背景图片不透明度")
+            @ValueDescription("背景图片不透明度")
             val alpha: Double = 1.0
         ) {
 
@@ -273,18 +274,18 @@ enum class DrawImageApiEnum {
 }
 
 @Serializable
-data class ResourceResolveConfigData(
-    @Comment(
+data class ResourceResolveConfigData internal constructor (
+    @ValueDescription(
         """
                 背景图片的地址类型
-                DISK: 本地磁盘下的路径
+                PATH: 本地磁盘下的路径
                 URL: Url类型的路径 (最常见的也就是 http://xxx.xxx, https://xxx.xxx, file://xxx/xxx)
                 当类型为URL时,会在本插件的 data/cache/ 目录下缓存默认背景图片.
-                主要目的是节省一些可能的非必要网络IO 并且会将 type修改为 DISK, value 也会修改为文件对应的绝对路径.
+                主要目的是节省一些可能的非必要网络IO 并且会将 type修改为 PATH, value 也会修改为文件对应的绝对路径.
             """
     )
     var type: ResourceReferenceType? = null,
-    @Comment("资源路径值")
+    @ValueDescription("资源路径值")
     var value: String? = null
 ) {
 
@@ -302,12 +303,12 @@ data class ResourceResolveConfigData(
                 Global.pluginCacheFolder.resolve(url.file.substringAfterLast("/")).apply {
                     createNewFile()
                     writeBytes(url.readBytes())
-                    type = ResourceReferenceType.DISK
+                    type = ResourceReferenceType.PATH
                     value = absolutePath
                 }
             }
 
-            ResourceReferenceType.DISK -> value?.let { Path(it).toFile() }
+            ResourceReferenceType.PATH -> value?.let { Path(it).toFile() }
             null -> null
         }
     }
@@ -321,7 +322,13 @@ data class ResourceResolveConfigData(
 @Serializable
 enum class ResourceReferenceType {
     URL,
-    DISK
+    PATH
+}
+
+@Serializable
+enum class CacheType {
+    MEMORY,
+    FILE,
 }
 
 object VisitConfig : AutoSavePluginConfig("visit-config") {

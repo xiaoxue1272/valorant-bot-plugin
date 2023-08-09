@@ -3,7 +3,7 @@ package io.tiangou
 import io.tiangou.command.CronTaskCommand
 import io.tiangou.command.VisitCommand
 import io.tiangou.cron.CronTaskManager
-import io.tiangou.cron.StoreCachesCleanTask
+import io.tiangou.cron.CachesCleanTask
 import io.tiangou.repository.persistnce.PersistenceDataInitiator
 import kotlinx.coroutines.runBlocking
 import net.mamoe.mirai.console.command.CommandManager
@@ -32,10 +32,10 @@ object ValorantBotPlugin : KotlinPlugin(
             if (Global.databaseConfig.isInitOnEnable) {
                 PersistenceDataInitiator.init()
             }
-            LibrariesLoader.loadApi(Global.drawImageConfig.api)
+            LibraryLoader.loadApi(Global.drawImageConfig.api)
         }
         CronTaskManager.start()
-        StoreCachesCleanTask.enable()
+        CachesCleanTask.enable()
         CommandManager.registerCommand(CronTaskCommand, false)
         CommandManager.registerCommand(VisitCommand, false)
         EventHandler.registerTo(GlobalEventChannel)

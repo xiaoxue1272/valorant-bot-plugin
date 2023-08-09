@@ -8,13 +8,10 @@ plugins {
 group = "io.tiangou.plugins"
 version = "0.7.0-dev"
 
-val kotlinVersion = "1.8.20"
 val ktorVersion = "2.2.4"
-val seleniumVersion = "4.9.1"
-val freemarkerVersion = "2.3.32"
 val skikoVersion = "0.7.72"
-val serializationVersion = "1.5.1"
-
+val sqliteJdbcVersion = "3.42.0.0"
+val hutoolVersion = "5.8.20"
 
 mirai {
     jvmTarget = JavaVersion.VERSION_1_8
@@ -30,16 +27,15 @@ repositories {
 
 
 dependencies {
-    implementation("net.mamoe.yamlkt:yamlkt-jvm:0.12.0")
-    implementation("org.xerial:sqlite-jdbc:3.42.0.0")
-    implementation("cn.hutool:hutool-cron:5.8.20")
-    implementation("io.ktor:ktor-client-core:$ktorVersion")
-    implementation("io.ktor:ktor-client-okhttp:$ktorVersion")
-    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    implementation("io.ktor:ktor-client-logging:$ktorVersion")
-    implementation("io.ktor:ktor-client-encoding:$ktorVersion")
+    implementation("org.xerial", "sqlite-jdbc", sqliteJdbcVersion)
+    implementation("cn.hutool", "hutool-cron", hutoolVersion)
+    implementation("io.ktor", "ktor-client-core", ktorVersion)
+    implementation("io.ktor", "ktor-client-okhttp", ktorVersion)
+    implementation("io.ktor", "ktor-client-content-negotiation", ktorVersion)
+    implementation("io.ktor", "ktor-serialization-kotlinx-json", ktorVersion)
+    implementation("io.ktor", "ktor-client-logging", ktorVersion)
+    implementation("io.ktor", "ktor-client-encoding", ktorVersion)
     // skiko support
-    implementation("org.jetbrains.skiko:skiko-awt:$skikoVersion")
+    implementation("org.jetbrains.skiko", "skiko-awt", skikoVersion)
 
 }

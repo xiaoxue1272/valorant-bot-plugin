@@ -9,17 +9,14 @@ import io.tiangou.other.http.isRedirect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import net.mamoe.mirai.utils.MiraiLogger
-import org.jetbrains.skiko.Library
-import org.jetbrains.skiko.OS
-import org.jetbrains.skiko.hostId
-import org.jetbrains.skiko.hostOs
+import org.jetbrains.skiko.*
 import java.io.File
 import java.nio.file.Path
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import kotlin.io.path.*
 
-abstract class LibrariesLoader {
+abstract class LibraryLoader {
 
     protected val log: MiraiLogger = MiraiLogger.Factory.create(this::class)
 
@@ -29,9 +26,9 @@ abstract class LibrariesLoader {
         get() = Global.drawImageConfig.libDictionary
 
     suspend fun loadLibraries(block: Path.() -> Unit) {
-        log.info("loading $libDescription libraries...")
-        block(getLibrariesPath())
-        log.info("$libDescription libraries loaded")
+        log.info("loading $libDescription library...")
+        block(getLibraryPath())
+        log.info("$libDescription library loaded")
     }
 
     fun Path.create(block: Path.() -> Unit): Path {
@@ -43,18 +40,17 @@ abstract class LibrariesLoader {
         return this
     }
 
-    abstract suspend fun getLibrariesPath(): Path
+    abstract suspend fun getLibraryPath(): Path
 
 
     companion object {
 
         suspend fun loadApi(apiEnum: DrawImageApiEnum) {
             when (apiEnum) {
-                SKIKO -> SkikoLibrariesLoader.loadLibraries {
+                SKIKO -> SkikoLibraryLoader.loadLibraries {
                     System.setProperty("skiko.library.path", absolutePathString())
                     Library.load()
                 }
-
                 AWT -> {}
             }
         }
@@ -64,33 +60,31 @@ abstract class LibrariesLoader {
 }
 
 
-object SkikoLibrariesLoader : LibrariesLoader() {
+object SkikoLibraryLoader : LibraryLoader() {
 
-    private val packageSequence: Sequence<String> = sequenceOf("org", "jetbrains", "skiko")
+    private val baseDirs: Array<String> = arrayOf("org", "jetbrains", "skiko")
 
     private val target = "skiko-awt-runtime-$hostId"
 
-    private const val version = "0.7.72"
-
     private val downloadUrl = "https://maven.pkg.jetbrains.space/public/p/compose/dev" +
-            packageSequence.joinToString("/", prefix = "/", postfix = "/") +
+            baseDirs.joinToString("/", prefix = "/", postfix = "/") +
             "$target/" +
-            "$version/" +
-            "$target-$version.jar"
+            "${Version.skiko}/" +
+            "$target-${Version.skiko}.jar"
 
     override val libDescription: String = "skiko"
 
-    override suspend fun getLibrariesPath(): Path {
-        val path = libPath.resolve(packageSequence.joinToString(File.separator))
+    override suspend fun getLibraryPath(): Path {
+        val path = libPath.resolve(baseDirs.joinToString(File.separator))
             .resolve(target)
-            .resolve(version)
+            .resolve(Version.skiko)
 
         val nativeLibName = "skiko-$hostId"
 
         fun ZipFile.unzipTo(entry: ZipEntry, path: Path) =
             getInputStream(entry).use { path.writeBytes(it.readBytes()) }
 
-        val zipPath = path.resolve("$target-$version.jar")
+        val zipPath = path.resolve("$target-${Version.skiko}.jar")
             .create {
                 log.info("$libDescription is not exists, starting download...")
                 log.info("$libDescription download path: $this")

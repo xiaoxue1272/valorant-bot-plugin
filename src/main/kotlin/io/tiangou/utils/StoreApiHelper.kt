@@ -22,13 +22,11 @@ object StoreApiHelper {
 
     fun clean(userCache: UserCache) {
         userCache.riotClientData.puuid?.let {
-            userCache.synchronized {
-                storeFronts.remove(it)
-            }
+            storeFronts.remove(it)
         }
     }
 
-    internal val storeFronts: ConcurrentHashMap<String, StoreFrontResponse> by lazy { ConcurrentHashMap() }
+    private val storeFronts: ConcurrentHashMap<String, StoreFrontResponse> by lazy { ConcurrentHashMap() }
 
 
 }
