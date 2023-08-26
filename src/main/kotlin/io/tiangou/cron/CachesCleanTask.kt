@@ -3,7 +3,7 @@ package io.tiangou.cron
 import io.ktor.util.date.*
 import io.tiangou.other.image.GenerateStoreImageType
 import io.tiangou.other.image.ImageGenerator
-import io.tiangou.repository.UserDataRepository
+import io.tiangou.repository.UserCacheRepository
 import io.tiangou.api.StoreApiHelper
 import java.time.ZoneId
 import java.util.*
@@ -25,7 +25,7 @@ object CachesCleanTask : Task() {
         }
 
     override suspend fun execute() {
-        UserDataRepository.getAllUserCache().forEach {
+        UserCacheRepository.getAllUserCache().forEach {
             it.value.synchronized {
                 StoreApiHelper.clean(this)
                 ImageGenerator.clean(this, GenerateStoreImageType.SKINS_PANEL_LAYOUT)

@@ -2,7 +2,7 @@ package io.tiangou.cron
 
 import io.tiangou.api.RiotApi
 import io.tiangou.other.http.actions
-import io.tiangou.repository.UserDataRepository
+import io.tiangou.repository.UserCacheRepository
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -14,7 +14,7 @@ class RiotAccountSecurityDataFlushTask(
     override val description: String = "Riot账号安全令牌刷新"
 
     override suspend fun execute() {
-        UserDataRepository.getAllUserCache().forEach { entry ->
+        UserCacheRepository.getAllUserCache().forEach { entry ->
             entry.value.takeIf { it.isRiotAccountLogin }?.synchronous {
                 riotClientData.actions {
                     runCatching {

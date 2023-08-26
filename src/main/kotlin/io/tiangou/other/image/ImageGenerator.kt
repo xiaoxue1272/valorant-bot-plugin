@@ -2,12 +2,13 @@ package io.tiangou.other.image
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.tiangou.ByteArrayCache
+import io.tiangou.CacheFactory
 import io.tiangou.DrawImageApiEnum
 import io.tiangou.Global
 import io.tiangou.api.StoreApiHelper
 import io.tiangou.other.http.client
-import io.tiangou.repository.UserData
-import io.tiangou.utils.*
+import io.tiangou.repository.UserCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
 import java.util.concurrent.ConcurrentHashMap
@@ -32,10 +33,10 @@ object ImageGenerator {
     private val caches: ConcurrentHashMap<String, MutableMap<GenerateStoreImageType, ByteArrayCache>> by lazy { ConcurrentHashMap() }
 
     suspend fun getCacheOrGenerate(
-        userData: UserData,
+        userCache: UserCache,
         type: GenerateStoreImageType,
         block: suspend ImageGenerator.(GenerateStoreImageType) -> ByteArray
-    ): ByteArray = userData.synchronous {
+    ): ByteArray = userCache.synchronous {
         val key = riotClientData.puuid!!
         val cacheTypeElements = caches[key]
             ?: mutableMapOf<GenerateStoreImageType, ByteArrayCache>().apply { caches[key] = this }
@@ -45,12 +46,12 @@ object ImageGenerator {
         cache.get()?.takeIf { it.isNotEmpty() } ?: block(this@ImageGenerator, type).apply { cache.put(this) }
     }
 
-    fun clean(userData: UserData) {
-        userData.riotClientData.puuid?.let { caches[it] }?.forEach { it.value.clean() }
+    fun clean(userCache: UserCache) {
+        userCache.riotClientData.puuid?.let { caches[it] }?.forEach { it.value.clean() }
     }
 
-    fun clean(userData: UserData, type: GenerateStoreImageType) {
-        userData.riotClientData.puuid?.let { caches[it] }?.get(type)?.clean()
+    fun clean(userCache: UserCache, type: GenerateStoreImageType) {
+        userCache.riotClientData.puuid?.let { caches[it] }?.get(type)?.clean()
     }
 
     private fun createImageContainer(): ImageContainer = when(Global.drawImageConfig.api) {
@@ -58,10 +59,10 @@ object ImageGenerator {
         DrawImageApiEnum.AWT -> AwtImageContainer()
     }
 
-    suspend fun storeImage(userData: UserData, type: GenerateStoreImageType): ByteArray {
-        val storeFront = StoreApiHelper.queryStoreFront(userData)
+    suspend fun storeImage(userCache: UserCache, type: GenerateStoreImageType): ByteArray {
+        val storeFront = StoreApiHelper.queryStoreFront(userCache)
         return createImageContainer().let {
-            val backgroundBytes = userData.customBackgroundFile?.readBytes()
+            val backgroundBytes = userCache.customBackgroundFile?.readBytes()
                 ?: Global.drawImageConfig.background.reference.getResourceBytes()!!
             it.initBackground(backgroundBytes, wp, hp)
             val width = (it.width - it.width * 0.4f).toInt()

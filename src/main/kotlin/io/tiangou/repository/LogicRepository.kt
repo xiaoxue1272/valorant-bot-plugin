@@ -16,9 +16,11 @@ object LogicRepository : JsonStorage<Map<String, List<LogicProcessor<MessageEven
 
     internal fun find(key: String): List<LogicProcessor<MessageEvent>>? = logicConfig[key]
 
+    internal fun matchesKeys(key: String): List<String> = logicConfig.keys.filter { it.contains(key) }
+
 }
 
-val DEFAULT_LOGIC_MAP: Map<String, List<LogicProcessor<MessageEvent>>> by lazy {
+private val DEFAULT_LOGIC_MAP: Map<String, List<LogicProcessor<MessageEvent>>> by lazy {
     mapOf(
         "帮助" to listOf(HelpListLogicProcessor),
         "账号登录" to listOf(

@@ -46,28 +46,28 @@ suspend fun MessageEvent.nextMessageEvent(): MessageEvent =
 
 suspend fun MessageEvent.reply(message: String) {
     when (this) {
-        is GroupMessageEvent -> group.sendMessage(MessageChainBuilder().append(At(sender)).append(message).build())
+        is GroupMessageEvent -> group.sendMessage(MessageChainBuilder().append(At(sender)).append("\n").append(message).build())
         else -> sender.sendMessage(message)
     }
 }
 
 suspend fun MessageEvent.reply(message: Message) {
     when (this) {
-        is GroupMessageEvent -> group.sendMessage(MessageChainBuilder().append(At(sender)).append(message).build())
+        is GroupMessageEvent -> group.sendMessage(MessageChainBuilder().append(At(sender)).append("\n").append(message).build())
         else -> sender.sendMessage(message)
     }
 }
 
 suspend fun Contact.reply(message: String, target: User) {
     when (this) {
-        is Group -> sendMessage(MessageChainBuilder().append(At(target)).append(message).build())
+        is Group -> sendMessage(MessageChainBuilder().append(At(target)).append("\n").append(message).build())
         else -> sendMessage(message)
     }
 }
 
 suspend fun Contact.reply(message: Message, target: User) {
     when (this) {
-        is Group -> sendMessage(MessageChainBuilder().append(At(target)).append(message).build())
+        is Group -> sendMessage(MessageChainBuilder().append(At(target)).append("\n").append(message).build())
         else -> sendMessage(message)
     }
 }
@@ -95,7 +95,7 @@ suspend fun CommandSender.reply(message: String) {
     if (subject != null && subject is Group) {
         sendMessage(
             MessageChainBuilder()
-                .apply { if (user != null) append(At(user!!)) }
+                .apply { if (user != null) append(At(user!!)).append("\n") }
                 .append(message)
                 .build()
         )
@@ -106,7 +106,7 @@ suspend fun CommandSender.reply(message: Message) {
     if (subject != null && subject is Group) {
         sendMessage(
             MessageChainBuilder()
-                .apply { if (user != null) append(At(user!!)) }
+                .apply { if (user != null) append(At(user!!)).append("\n") }
                 .append(message)
                 .build()
         )

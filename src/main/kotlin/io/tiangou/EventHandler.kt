@@ -2,7 +2,7 @@
 
 package io.tiangou
 
-import io.tiangou.repository.UserDataRepository
+import io.tiangou.repository.UserCacheRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -15,6 +15,7 @@ import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.events.MessageEvent
 import net.mamoe.mirai.event.events.NewFriendRequestEvent
 import net.mamoe.mirai.message.data.At
+import net.mamoe.mirai.message.data.Message
 import net.mamoe.mirai.message.data.QuoteReply
 import net.mamoe.mirai.message.data.firstIsInstanceOrNull
 import net.mamoe.mirai.utils.MiraiLogger
@@ -47,21 +48,25 @@ object EventHandler : SimpleListenerHost() {
         if (!checkMessageAllow()) {
             return
         }
-        val userCache = UserDataRepository[sender.id]
+        val userCache = UserCacheRepository[sender.id]
         userCache.logicController.apply {
             if (Global.eventConfig.exitLogicCommand == toText()) {
-                exitLogic()
+                exitLogic(this@onMessage)
                 return
             }
             if (processJob != null && processJob!!.isActive) {
                 reply("正在执行中,请稍候")
                 return
             }
+            val key = this@onMessage.message.toText()
+            val processorList = loadLogic(key)
+            if (processorList == null) {
+                logicTips(key)?.let { inputNotFoundHandle(it) }
+                return
+            }
             supervisorScope {
                 processJob = launch {
                     runCatching {
-                        val processorList = loadLogic(this@onMessage.message.toText())
-                            ?: inputNotFoundHandle("未找到对应操作,请检查输入是否正确").let { return@launch }
                         for (logicProcessor in processorList) {
                             logicProcessor.apply { process(userCache) }
                         }
@@ -125,6 +130,10 @@ object EventHandler : SimpleListenerHost() {
         }
 
     private suspend fun MessageEvent.inputNotFoundHandle(msg: String) {
+        if (Global.eventConfig.isWarnOnInputNotFound) reply(msg)
+    }
+
+    private suspend fun MessageEvent.inputNotFoundHandle(msg: Message) {
         if (Global.eventConfig.isWarnOnInputNotFound) reply(msg)
     }
 

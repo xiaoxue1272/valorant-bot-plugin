@@ -1,7 +1,5 @@
-package io.tiangou.utils
+package io.tiangou
 
-import io.tiangou.CacheType
-import io.tiangou.Global
 import java.io.File
 import java.util.UUID
 

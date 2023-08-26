@@ -66,6 +66,11 @@ v0.7.0
 4.现在可以自定义绘图使用的字体文件
 5.优化了AWT SKIKO绘图逻辑
 6.生成图片缓存结构优化 (缓存文件 or 内存, and 数据结构) ImageGenerator.cache()
-7. todo 缓存结构优化
-8. todo 查询夜市
-9. todo 对局信息推送
+7. todo UserCache数据类的新老适配器 需要写一个来兼容旧版的UserCache
+
+v0.8.0 开发计划
+1. todo 缓存结构优化
+2. todo 查询夜市
+3. todo 对局信息推送
+4. todo 添加清除登录及用户信息逻辑块
+5. todo 长时间登录过期的用户会被自动清除登录信息
