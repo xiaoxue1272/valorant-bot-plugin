@@ -1,19 +1,11 @@
 package io.tiangou.logic
 
-import io.tiangou.Global
 import io.tiangou.reply
 import io.tiangou.repository.LogicRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import net.mamoe.mirai.event.events.MessageEvent
-import kotlin.coroutines.CoroutineContext
 
-class LogicSelector : CoroutineScope {
-
-    override val coroutineContext: CoroutineContext = SupervisorJob() + Global.coroutineScope.coroutineContext
-
+class LogicController {
 
     var processJob: Job? = null
 

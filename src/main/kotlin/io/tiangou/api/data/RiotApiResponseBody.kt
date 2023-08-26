@@ -7,21 +7,23 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AuthResponse(
-    val type: String,
+    val type: TypeEnum,
     var multifactor: MultiFactor? = null,
     var response: Response? = null,
     val country: String? = null,
     var securityProfile: String? = null,
 ) {
 
-    companion object {
-        const val MULTI_FACTOR = "multifactor"
-
-        const val RESPONSE = "response"
-
-        const val ERROR = "error"
-
-        const val AUTH = "auth"
+    @Serializable
+    enum class TypeEnum{
+        @SerialName("multifactor")
+        MULTI_FACTOR,
+        @SerialName("response")
+        RESPONSE,
+        @SerialName("error")
+        ERROR,
+        @SerialName("auth")
+        AUTH,
     }
 
     /**

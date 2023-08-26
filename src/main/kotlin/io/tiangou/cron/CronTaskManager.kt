@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package io.tiangou.cron
 
 import cn.hutool.cron.pattern.CronPattern
@@ -16,18 +18,29 @@ import net.mamoe.mirai.utils.MiraiLogger
 import java.time.ZoneId
 import java.util.*
 import kotlin.coroutines.CoroutineContext
+import kotlin.reflect.KClass
 
 object CronTaskManager : AutoSavePluginConfig("cron-task") {
 
     @ValueName("taskList")
     @ValueDescription("定时任务集合")
-    val taskList: List<Task> by value(
-        listOf(
+    val taskList: MutableList<Task> by value(
+        mutableListOf(
             DailyStorePushTask("0 10 08 * * ? *", true),
             PersistenceDataFlushTask("0 0 9 ? * 7 *", true),
             RiotAccountSecurityDataFlushTask("0 30 4,12,20 * * ? *", true)
         )
     )
+
+    fun allTask(): List<Task> = taskList
+
+    fun allTask(canManuallyTrigger: Boolean): List<Task> =
+        taskList.filter { it.canManuallyTrigger == canManuallyTrigger }
+
+    fun find(taskClass: KClass<Task>): Task? = find(taskClass.simpleName!!)
+
+    fun find(taskName: String): Task? =
+        taskList.find { it::class.simpleName!!.uppercase() == taskName.uppercase() }
 
     fun start() {
         taskList.forEach {
@@ -54,6 +67,8 @@ sealed class Task : CoroutineScope {
     abstract var isEnable: Boolean
 
     abstract val description: String
+
+    open val canManuallyTrigger: Boolean = true
 
     @Serializable(TimeZoneSerializer::class)
     open val timeZone: TimeZone = TimeZone.getTimeZone(ZoneId.of("GMT+08:00"))
@@ -92,7 +107,6 @@ sealed class Task : CoroutineScope {
         runCatching { job?.cancel("已禁用任务 [${this::class.simpleName}] ") }
         log.info("已禁用任务 [${this::class.simpleName}]")
     }
-
 
     abstract suspend fun execute()
 

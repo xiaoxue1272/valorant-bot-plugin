@@ -16,7 +16,7 @@ object CronTaskCommand : CompositeCommand(
 ) {
 
     private suspend fun getTaskByString(context: CommandContext, arg: String): Task? {
-        val task = CronTaskManager.taskList.find { it::class.simpleName!!.uppercase() == arg.uppercase() }
+        val task = CronTaskManager.find(arg)
         if (task == null) {
             context.sender.reply("未找到符合的任务,请检查输入")
         }
@@ -30,7 +30,7 @@ object CronTaskCommand : CompositeCommand(
             return
         }
         val builder = MessageChainBuilder()
-        CronTaskManager.taskList.forEach {
+        CronTaskManager.allTask(true).forEach {
             builder.append("[${it::class.simpleName!!}] [${it.description}] isEnable: ${it.isEnable}\n")
         }
         context.sender.reply(builder.build())

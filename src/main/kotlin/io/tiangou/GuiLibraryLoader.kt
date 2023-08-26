@@ -2,6 +2,7 @@ package io.tiangou
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.util.date.*
 import io.tiangou.DrawImageApiEnum.AWT
 import io.tiangou.DrawImageApiEnum.SKIKO
 import io.tiangou.other.http.client
@@ -16,7 +17,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import kotlin.io.path.*
 
-abstract class LibraryLoader {
+abstract class GuiLibraryLoader {
 
     protected val log: MiraiLogger = MiraiLogger.Factory.create(this::class)
 
@@ -31,11 +32,11 @@ abstract class LibraryLoader {
         log.info("$libDescription library loaded")
     }
 
-    fun Path.create(block: Path.() -> Unit): Path {
+     fun Path.create(block: suspend Path.() -> Unit): Path {
         if (!exists()) {
             if (!parent.exists()) parent.createDirectories()
             createFile()
-            block()
+            runBlocking { block() }
         }
         return this
     }
@@ -60,7 +61,7 @@ abstract class LibraryLoader {
 }
 
 
-object SkikoLibraryLoader : LibraryLoader() {
+object SkikoLibraryLoader : GuiLibraryLoader() {
 
     private val baseDirs: Array<String> = arrayOf("org", "jetbrains", "skiko")
 
@@ -88,13 +89,10 @@ object SkikoLibraryLoader : LibraryLoader() {
             .create {
                 log.info("$libDescription is not exists, starting download...")
                 log.info("$libDescription download path: $this")
-                runBlocking(Dispatchers.IO) {
-                    client.get(downloadUrl).apply {
-                        if (status.isRedirect()) {
-                            writeBytes(client.get(headers["location"]!!).readBytes())
-                        } else writeBytes(readBytes())
-                    }
-                }
+                val bytes = client.get(downloadUrl).let {
+                    it.takeIf { it.status.isRedirect() } ?: client.get(it.headers["location"]!!)
+                }.readBytes()
+                writeBytes(bytes)
                 log.info("$libDescription downloaded")
             }
 
@@ -123,4 +121,8 @@ object SkikoLibraryLoader : LibraryLoader() {
     }
 
 
+}
+
+fun main() {
+    println(GMTDate(getTimeMillis() + 1535222 * 1000))
 }

@@ -2,10 +2,11 @@
 
 package io.tiangou
 
-import io.tiangou.repository.UserCacheRepository
+import io.tiangou.repository.UserDataRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.supervisorScope
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.event.EventHandler
 import net.mamoe.mirai.event.SimpleListenerHost
@@ -46,8 +47,8 @@ object EventHandler : SimpleListenerHost() {
         if (!checkMessageAllow()) {
             return
         }
-        val userCache = UserCacheRepository[sender.id]
-        userCache.logicSelector.apply {
+        val userCache = UserDataRepository[sender.id]
+        userCache.logicController.apply {
             if (Global.eventConfig.exitLogicCommand == toText()) {
                 exitLogic()
                 return
@@ -56,31 +57,32 @@ object EventHandler : SimpleListenerHost() {
                 reply("正在执行中,请稍候")
                 return
             }
-        }.apply {
-            processJob = launch {
-                runCatching {
-                    val processorList = loadLogic(this@onMessage.message.toText())
-                        ?: inputNotFoundHandle("未找到对应操作,请检查输入是否正确").let { return@launch }
-                    for (logicProcessor in processorList) {
-                        logicProcessor.apply { process(userCache) }
-                    }
-                }.onFailure {
-                    when (it) {
-                        is ValorantRuntimeException -> {
-                            log.warning("qq user:[${sender.id}]", it)
-                            reply("${it.message}")
+            supervisorScope {
+                processJob = launch {
+                    runCatching {
+                        val processorList = loadLogic(this@onMessage.message.toText())
+                            ?: inputNotFoundHandle("未找到对应操作,请检查输入是否正确").let { return@launch }
+                        for (logicProcessor in processorList) {
+                            logicProcessor.apply { process(userCache) }
                         }
-
-                        else -> {
-                            log.warning("processing valorant bot logic throw throwable", it)
-                            reply("error: ${it.message}")
+                    }.onFailure {
+                        when (it) {
+                            is ValorantRuntimeException -> {
+                                log.warning("qq user:[${sender.id}]", it)
+                                reply("${it.message}")
+                            }
+                            is CancellationException -> {}
+                            else -> {
+                                log.warning("processing valorant bot logic throw throwable", it)
+                                reply("error: ${it.message}")
+                            }
                         }
                     }
-                }
-            }.apply {
-                invokeOnCompletion {
-                    processJob = null
-                    if (it != null && it is CancellationException) runBlocking { reply("已退出指令") }
+                }.apply {
+                    invokeOnCompletion {
+                        processJob = null
+                        if (it != null && it is CancellationException) runBlocking { reply("已退出指令") }
+                    }
                 }
             }
         }

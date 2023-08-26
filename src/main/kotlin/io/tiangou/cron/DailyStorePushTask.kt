@@ -4,8 +4,8 @@ import io.tiangou.isVisitAllow
 import io.tiangou.other.image.GenerateStoreImageType
 import io.tiangou.other.image.ImageGenerator
 import io.tiangou.reply
-import io.tiangou.repository.UserCache
-import io.tiangou.repository.UserCacheRepository
+import io.tiangou.repository.UserData
+import io.tiangou.repository.UserDataRepository
 import io.tiangou.uploadImage
 import kotlinx.serialization.Serializable
 import net.mamoe.mirai.Bot
@@ -27,7 +27,7 @@ class DailyStorePushTask(
     override suspend fun execute() {
         val date = DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDate.now(timeZone.toZoneId()))
         val onlineBots = Bot.instances.filter { it.isOnline }
-        for (entry in UserCacheRepository.getAllUserCache()) {
+        for (entry in UserDataRepository.getAllUserCache()) {
             val userCache = entry.value
             if (userCache.subscribeDailyStore) {
                 val locations = userCache.filterPushLocations(entry.key, onlineBots)
@@ -58,7 +58,7 @@ class DailyStorePushTask(
         }
     }
 
-    private fun UserCache.filterPushLocations(userQQ: Long, onlineBots: List<Bot>): List<BotPushLocation> {
+    private fun UserData.filterPushLocations(userQQ: Long, onlineBots: List<Bot>): List<BotPushLocation> {
         val currentPushLocates = dailyStorePushLocates.toMutableMap()
         return mutableListOf<BotPushLocation>().apply {
             for (bot in onlineBots) {
@@ -66,8 +66,8 @@ class DailyStorePushTask(
                 if (user != null) {
                     currentPushLocates.toMutableMap().mapNotNull { location ->
                         when (location.value) {
-                            UserCache.ContactEnum.GROUP -> bot.getGroup(location.key)
-                            UserCache.ContactEnum.USER -> bot.getFriend(location.key) ?: bot.getStranger(location.key)
+                            UserData.ContactEnum.GROUP -> bot.getGroup(location.key)
+                            UserData.ContactEnum.USER -> bot.getFriend(location.key) ?: bot.getStranger(location.key)
                         }?.takeIf {
                             isVisitAllow(it.id, bot)
                         }?.apply {

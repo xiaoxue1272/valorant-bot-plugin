@@ -27,15 +27,14 @@ object ValorantBotPlugin : KotlinPlugin(
     override fun onEnable() {
         Global.reload()
         VisitConfig.reload()
-        CronTaskManager.reload()
+        CronTaskManager.apply { reload(); start() }
+        CachesCleanTask.enable()
         runBlocking {
             if (Global.databaseConfig.isInitOnEnable) {
                 PersistenceDataInitiator.init()
             }
-            LibraryLoader.loadApi(Global.drawImageConfig.api)
+            GuiLibraryLoader.loadApi(Global.drawImageConfig.api)
         }
-        CronTaskManager.start()
-        CachesCleanTask.enable()
         CommandManager.registerCommand(CronTaskCommand, false)
         CommandManager.registerCommand(VisitCommand, false)
         EventHandler.registerTo(GlobalEventChannel)

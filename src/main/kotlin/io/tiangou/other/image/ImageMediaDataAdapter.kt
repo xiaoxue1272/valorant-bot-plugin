@@ -1,4 +1,4 @@
-package io.tiangou.utils
+package io.tiangou.other.image
 
 import io.tiangou.api.data.StoreFrontResponse
 import io.tiangou.repository.persistnce.*
