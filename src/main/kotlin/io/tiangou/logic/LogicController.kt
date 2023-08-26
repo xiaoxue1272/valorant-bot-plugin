@@ -19,7 +19,7 @@ class LogicController {
     }
 
     fun logicTips(key: String) =
-        LogicRepository.matchesKeys(key).takeIf { it.isNotEmpty() }?.let {
+        LogicRepository.matchesKeys(key).takeIf { it.isNotEmpty() && key.isNotEmpty() }?.let {
             MessageChainBuilder()
                 .append("未找到对应的操作,你可能想说:\n")
                 .append(">>>>>>>>>\n")
