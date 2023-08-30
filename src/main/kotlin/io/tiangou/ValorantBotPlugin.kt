@@ -17,7 +17,7 @@ object ValorantBotPlugin : KotlinPlugin(
     description = JvmPluginDescription(
         id = "io.tiangou.valorant-bot-plugin",
         name = "valorant-bot-plugin",
-        version = "0.7.0-dev"
+        version = "0.7.0-pre"
     )
     {
         author("xiaoxue1272")
