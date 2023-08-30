@@ -14,6 +14,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.serializer
+import net.mamoe.mirai.Bot
 import java.io.File
 
 @Serializable
@@ -23,7 +24,7 @@ data class UserCache(
     var subscribeDailyStore: Boolean = false,
     var subscribeList: List<SubscribeType> = listOf(),
     var customBackgroundFile: File? = null,
-    @Deprecated("由于设计问题, 自v0.7.0弃用") var dailyStorePushLocations: MutableMap<Long, Boolean> = mutableMapOf(),
+//    @Deprecated("由于设计问题, 自v0.7.0弃用") var dailyStorePushLocations: MutableMap<Long, Boolean> = mutableMapOf(),
     var dailyStorePushLocates: MutableMap<Long, ContactEnum> = mutableMapOf(),
 ) {
 
@@ -66,6 +67,12 @@ object UserCacheRepository : AutoFlushStorage<MutableMap<Long, UserCache>>(
 
     override var data: MutableMap<Long, UserCache> = runBlocking { load() ?: store(mutableMapOf()) }
 
+    override suspend fun load(): MutableMap<Long, UserCache>? = try {
+        super.load()
+    } catch (e: Exception) {
+        OldUserCacheDataStructureAdapter().adapt()
+    }
+
     init {
         registry()
     }
@@ -76,5 +83,49 @@ object UserCacheRepository : AutoFlushStorage<MutableMap<Long, UserCache>>(
     }
 
     fun getAllUserCache(): Map<Long, UserCache> = data
+
+}
+
+
+@Serializable
+data class OldUserCache(
+    val riotClientData: RiotClientData = RiotClientData(),
+    var isRiotAccountLogin: Boolean = false,
+    var subscribeDailyStore: Boolean = false,
+    var customBackgroundFile: File? = null,
+    var dailyStorePushLocations: MutableMap<Long, Boolean> = mutableMapOf()
+)
+
+class OldUserCacheDataStructureAdapter: JsonStorage<MutableMap<Long, OldUserCache>>("user-cache", StoragePathEnum.DATA_PATH, serializer()) {
+
+
+    suspend fun adapt(): MutableMap<Long, UserCache>? {
+        fun convertDailyStorePushLocates(map: MutableMap<Long, Boolean>): MutableMap<Long, UserCache.ContactEnum> =
+            map.mapValues {
+                var isGroup = false
+                for (bot in Bot.instances) {
+                    if (bot.getGroup(it.key) != null) {
+                        isGroup = true
+                        break
+                    }
+                }
+                return@mapValues if (isGroup) {
+                    UserCache.ContactEnum.GROUP
+                } else {
+                    UserCache.ContactEnum.USER
+                }
+            }.toMutableMap()
+
+        return load()?.mapValues {
+            UserCache(
+                it.value.riotClientData,
+                it.value.isRiotAccountLogin,
+                it.value.subscribeDailyStore,
+                customBackgroundFile = it.value.customBackgroundFile,
+                dailyStorePushLocates = convertDailyStorePushLocates(it.value.dailyStorePushLocations)
+            )
+        }?.toMutableMap()
+
+    }
 
 }
