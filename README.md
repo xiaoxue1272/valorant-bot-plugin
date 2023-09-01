@@ -5,9 +5,11 @@
 Miria Console 插件
 需要安装 Sqlite3
 
+画图GUI库可选 AWT 或 SKIKO (Skia)
+
 关于系统是否支持skiko,可以用脚本[OsTest.py](OsTest.py)跑一下.如果正常输出了系统架构就代表skiko可以运行.
 
-更新内容记录在[Changelog.txt](CHANGELOG.txt)Changelog.txt中,或者查看Release记录.
+更新内容记录在[CHANGELOG.txt](CHANGELOG.txt)中,或者查看Release记录.
 
 ****
 
