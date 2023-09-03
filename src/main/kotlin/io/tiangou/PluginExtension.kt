@@ -18,8 +18,10 @@ import net.mamoe.mirai.console.data.ValueDescription
 import net.mamoe.mirai.console.data.value
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
 import net.mamoe.mirai.console.plugin.PluginManager
+import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.contact.Group
+import net.mamoe.mirai.contact.Member
 import net.mamoe.mirai.contact.User
 import net.mamoe.mirai.event.EventPriority
 import net.mamoe.mirai.event.GlobalEventChannel
@@ -38,42 +40,85 @@ fun MessageChain.toText() = filterIsInstance<PlainText>().toMessageChain().conte
 
 fun MessageEvent.toText() = message.toText()
 
+fun getOnlineBots() = Bot.instances.filter { it.isOnline }
+
+fun Bot.getUser(qq: Long) = getFriend(qq) ?: getStranger(qq)
+
+fun Bot.getUserOrFail(qq: Long) = getFriend(qq) ?: getStranger(qq) ?: throw NoSuchElementException("User $id")
+
+fun Bot.getContact(qq: Long) = getUser(qq) ?: getGroup(qq)
+
+fun Bot.getContactOrFail(qq: Long) = getUser(qq) ?: getGroup(qq) ?: throw NoSuchElementException("Contact $id")
+
 suspend fun MessageEvent.nextMessageEvent(): MessageEvent =
     GlobalEventChannel.nextEvent(
         EventPriority.HIGHEST,
         intercept = true
     ) { it.sender.id == sender.id && it.toText() != Global.eventConfig.exitLogicCommand }
 
+
 suspend fun MessageEvent.reply(message: String) {
     when (this) {
-        is GroupMessageEvent -> group.sendMessage(MessageChainBuilder().append(At(sender)).append("\n").append(message).build())
+        is GroupMessageEvent -> group.sendMessage(
+            MessageChainBuilder().append(At(sender)).append("\n").append(message).build()
+        )
+
         else -> sender.sendMessage(message)
     }
 }
 
 suspend fun MessageEvent.reply(message: Message) {
     when (this) {
-        is GroupMessageEvent -> group.sendMessage(MessageChainBuilder().append(At(sender)).append("\n").append(message).build())
+        is GroupMessageEvent -> group.sendMessage(
+            MessageChainBuilder().append(At(sender)).append("\n").append(message).build()
+        )
+
         else -> sender.sendMessage(message)
     }
 }
 
-suspend fun Contact.reply(message: String, target: User) {
+suspend fun Contact.reply(message: String, target: User? = null) =
     when (this) {
-        is Group -> sendMessage(MessageChainBuilder().append(At(target)).append("\n").append(message).build())
+        is Group -> {
+            if (target != null) {
+                if (contains(target.id))
+                    sendMessage(
+                        MessageChainBuilder().append(target.cast<Member>().at()).append("\n").append(message).build()
+                    )
+                else null
+            } else sendMessage(MessageChainBuilder().append(message).build())
+        }
+
         else -> sendMessage(message)
     }
+
+suspend fun Contact.reply(message: Message, target: User? = null) =
+    when (this) {
+        is Group -> {
+            if (target != null) {
+                if (contains(target.id))
+                    sendMessage(
+                        MessageChainBuilder().append(target.cast<Member>().at()).append("\n").append(message).build()
+                    )
+                else null
+            } else sendMessage(MessageChainBuilder().append(message).build())
+        }
+
+        else -> sendMessage(message)
+    }
+
+internal suspend fun MessageEvent.isVisitAllow(qq: Long): Boolean {
+    if (!isVisitAllow(qq, bot)) reply("[$qq],暂无访问权限")
+    return true
 }
 
-suspend fun Contact.reply(message: Message, target: User) {
-    when (this) {
-        is Group -> sendMessage(MessageChainBuilder().append(At(target)).append("\n").append(message).build())
-        else -> sendMessage(message)
-    }
+internal suspend fun MessageEvent.isVisitAllow(): Boolean {
+    isVisitAllow(sender.id)
+    return true
 }
 
 fun isVisitAllow(qq: Long, bot: Bot): Boolean {
-    val contact: Contact = bot.getGroup(qq) ?: bot.getFriend(qq) ?: bot.getStranger(qq) ?: return false
+    val contact: Contact = bot.getContact(qq) ?: return false
     when (VisitConfig.controlType) {
         VisitControlEnum.WHITE_LIST -> if (!contact.getVisitControlList().contains(qq)) {
             return false
@@ -196,7 +241,7 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
     )
 
     @Serializable
-    data class DatabaseConfigData internal constructor (
+    data class DatabaseConfigData internal constructor(
         @ValueDescription("数据库连接JDBC URL")
         val jdbcUrl: String = "jdbc:sqlite:${ValorantBotPlugin.dataFolder}${File.separator}ValorantPlugin.DB3",
         @ValueDescription("是否在插件加载时就初始化数据库数据")
@@ -204,7 +249,7 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
     )
 
     @Serializable
-    data class DrawImageConfig internal constructor (
+    data class DrawImageConfig internal constructor(
         @ValueDescription(
             """
                 SKIKO: 使用Skiko进行绘图(某些CPU架构可能不支持)
@@ -224,7 +269,7 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
     ) {
 
         @Serializable
-        data class FontConfigData internal constructor (
+        data class FontConfigData internal constructor(
             @ValueDescription("字体资源路径配置")
             val reference: ResourceResolveConfigData = ResourceResolveConfigData(),
             @ValueDescription("字体颜色 默认白色")
@@ -232,7 +277,7 @@ object Global : ReadOnlyPluginConfig("plugin-config") {
         )
 
         @Serializable
-        data class BackgroundConfigData internal constructor (
+        data class BackgroundConfigData internal constructor(
             @ValueDescription("默认背景资源路径配置")
             val reference: ResourceResolveConfigData = ResourceResolveConfigData(
                 ResourceReferenceType.URL,
@@ -274,7 +319,7 @@ enum class DrawImageApiEnum {
 }
 
 @Serializable
-data class ResourceResolveConfigData internal constructor (
+data class ResourceResolveConfigData internal constructor(
     @ValueDescription(
         """
                 背景图片的地址类型
@@ -355,4 +400,4 @@ enum class VisitControlEnum {
     BLACK_LIST
 }
 
-open class ValorantRuntimeException(override val message: String?) : RuntimeException()
+open class ValorantPluginException(override val message: String?) : Exception()

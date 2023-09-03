@@ -6,16 +6,16 @@ plugins {
 }
 
 group = "io.tiangou.plugins"
-version = "0.7.0"
+version = "0.8.0-dev"
 
-val ktorVersion = "2.2.4"
+val ktorVersion = "2.3.4"
 val skikoVersion = "0.7.72"
 val sqliteJdbcVersion = "3.42.0.0"
 val hutoolVersion = "5.8.20"
 
 mirai {
     jvmTarget = JavaVersion.VERSION_1_8
-    consoleVersion = "2.14.0"
+    consoleVersion = "2.15.0"
 }
 
 repositories {

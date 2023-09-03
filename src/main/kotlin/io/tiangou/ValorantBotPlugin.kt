@@ -2,8 +2,8 @@ package io.tiangou
 
 import io.tiangou.command.CronTaskCommand
 import io.tiangou.command.VisitCommand
-import io.tiangou.cron.CronTaskManager
 import io.tiangou.cron.CachesCleanTask
+import io.tiangou.cron.CronTaskManager
 import io.tiangou.repository.persistnce.PersistenceDataInitiator
 import kotlinx.coroutines.runBlocking
 import net.mamoe.mirai.console.command.CommandManager
@@ -17,7 +17,7 @@ object ValorantBotPlugin : KotlinPlugin(
     description = JvmPluginDescription(
         id = "io.tiangou.valorant-bot-plugin",
         name = "valorant-bot-plugin",
-        version = "0.7.0"
+        version = "0.8.0-dev"
     )
     {
         author("xiaoxue1272")

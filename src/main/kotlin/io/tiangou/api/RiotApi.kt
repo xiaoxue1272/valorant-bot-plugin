@@ -151,6 +151,12 @@ class RiotClientData(
     var shard: String? = null,
 ) : ClientData() {
 
+    override fun clean() {
+        super.clean()
+        authToken.set(null)
+        xRiotEntitlementsJwt.set(null)
+    }
+
     fun flushAccessToken(url: Url) {
         parseQueryString(url.fragment).let { parameters ->
             parameters["access_token"]?.takeIf { it.isNotEmpty() }?.apply { authToken.set(this) }

@@ -20,6 +20,11 @@ open class ClientData(
 
     companion object Key : CoroutineContext.Key<ClientData>
 
+    open fun clean() {
+        cookies.clear()
+        oldestCookieTimestamp.set(0)
+    }
+
 }
 
 suspend inline fun <reified T : ClientData, reified R> T.actions(crossinline block: suspend T.() -> R) =

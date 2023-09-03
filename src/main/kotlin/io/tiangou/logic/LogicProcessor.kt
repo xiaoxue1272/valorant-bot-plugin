@@ -5,6 +5,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.tiangou.*
 import io.tiangou.api.RiotApi
+import io.tiangou.api.StoreApiHelper
 import io.tiangou.api.data.AuthCookiesRequest
 import io.tiangou.api.data.AuthRequest
 import io.tiangou.api.data.AuthResponse
@@ -14,7 +15,6 @@ import io.tiangou.other.http.client
 import io.tiangou.other.image.GenerateStoreImageType
 import io.tiangou.other.image.ImageGenerator
 import io.tiangou.repository.UserCache
-import io.tiangou.api.StoreApiHelper
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import net.mamoe.mirai.console.util.cast
@@ -39,7 +39,7 @@ sealed interface LogicProcessor<T : MessageEvent> {
 object HelpListLogicProcessor : LogicProcessor<MessageEvent>,
     Storage<String> by StringStorage("help-list.txt", StoragePathEnum.CONFIG_PATH) {
 
-    private val helpMessage: String = runBlocking { load() ?: store(HELP_LIST_MESSAGE) }
+    private val helpMessage: String = runBlocking { load() ?: store(default_help_list) }
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         reply(helpMessage)
@@ -136,10 +136,10 @@ object CheckRiotStatusAndSettingProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         if (!userCache.isRiotAccountLogin) {
-            throw ValorantRuntimeException("请先登录Riot账号")
+            throw ValorantPluginException("请先登录Riot账号")
         }
         if (userCache.riotClientData.shard == null && userCache.riotClientData.region == null) {
-            throw ValorantRuntimeException("请先设置地区")
+            throw ValorantPluginException("请先设置地区")
         }
     }
 
@@ -150,7 +150,7 @@ object CheckIsBotFriendProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         if (bot.getFriend(sender.id) == null) {
-            throw ValorantRuntimeException("请添加机器人为好友")
+            throw ValorantPluginException("请添加机器人为好友")
         }
     }
 
@@ -229,24 +229,27 @@ object AddLocateToDailyStorePushLocatesProcessor : LogicProcessor<MessageEvent> 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         reply("请输入群号")
         nextMessageEvent().apply {
-            val text = toText()
-            if ("\\d+".toRegex().matches(text) && isVisitAllow(text)) {
-                val groupId = text.toLong()
-                val isEnabledLocate = userCache.dailyStorePushLocates[groupId] == null
-                if (isEnabledLocate) {
-                    if (bot.containsGroup(groupId)) {
-                        userCache.dailyStorePushLocates[groupId] = UserCache.ContactEnum.GROUP
-                    } else {
-                        reply("未找到群[$text],请检查Bot是否在指定的群中")
-                        return
-                    }
-                } else {
-                    userCache.dailyStorePushLocates.remove(groupId)
+            val groupId = "\\d+".toRegex().let {
+                val text = toText()
+                if (!it.matches(text)) {
+                    reply("输入不正确,无法解析为正确的推送地点")
+                    return
                 }
-                reply("已将指定群[${text}]的推送状态设置为:${if (isEnabledLocate) "启用" else "停用"}")
-            } else {
-                reply("输入不正确,无法解析为正确的推送地点")
+                text.toLong()
             }
+            if (!isVisitAllow(groupId)) return
+            val isGroupNotExists = userCache.dailyStorePushLocates[groupId] == null
+            if (isGroupNotExists) {
+                if (bot.containsGroup(groupId)) {
+                    userCache.dailyStorePushLocates[groupId] = UserCache.ContactEnum.GROUP
+                } else {
+                    reply("未找到群[$groupId],请检查Bot是否在指定的群中")
+                    return
+                }
+            } else {
+                userCache.dailyStorePushLocates.remove(groupId)
+            }
+            reply("已将指定群[${groupId}]的推送状态设置为:${if (isGroupNotExists) "启用" else "停用"}")
         }
     }
 }
@@ -255,8 +258,8 @@ object AddLocateToDailyStorePushLocatesProcessor : LogicProcessor<MessageEvent> 
 object AddCurrentLocateToDailyStorePushLocatesProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
-        val isEnabledLocate = userCache.dailyStorePushLocates[subject.id] == null
-        if (isEnabledLocate) {
+        val isCurrentLocateNotExists = userCache.dailyStorePushLocates[subject.id] == null
+        if (isCurrentLocateNotExists && isVisitAllow()) {
             if (bot.containsGroup(subject.id)) {
                 userCache.dailyStorePushLocates[subject.id] = UserCache.ContactEnum.GROUP
             } else if (bot.containsFriend(subject.id) || bot.getStranger(subject.id) != null) {
@@ -268,6 +271,6 @@ object AddCurrentLocateToDailyStorePushLocatesProcessor : LogicProcessor<Message
         } else {
             userCache.dailyStorePushLocates.remove(subject.id)
         }
-        reply("已将当前地点[${subject.id}]的推送状态设置为:${if (isEnabledLocate) "启用" else "停用"}")
+        reply("已将当前地点[${subject.id}]的推送状态设置为:${if (isCurrentLocateNotExists) "启用" else "停用"}")
     }
 }

@@ -2,10 +2,7 @@
 
 package io.tiangou.repository
 
-import io.tiangou.AutoFlushStorage
-import io.tiangou.FileSerializer
-import io.tiangou.JsonStorage
-import io.tiangou.StoragePathEnum
+import io.tiangou.*
 import io.tiangou.api.RiotClientData
 import io.tiangou.logic.LogicController
 import kotlinx.coroutines.runBlocking
@@ -14,7 +11,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.serializer
-import net.mamoe.mirai.Bot
 import java.io.File
 
 @Serializable
@@ -24,7 +20,6 @@ data class UserCache(
     var subscribeDailyStore: Boolean = false,
     var subscribeList: List<SubscribeType> = listOf(),
     var customBackgroundFile: File? = null,
-//    @Deprecated("由于设计问题, 自v0.7.0弃用") var dailyStorePushLocations: MutableMap<Long, Boolean> = mutableMapOf(),
     var dailyStorePushLocates: MutableMap<Long, ContactEnum> = mutableMapOf(),
 ) {
 
@@ -43,6 +38,7 @@ data class UserCache(
     @Serializable
     enum class SubscribeType {
         DAILY_STORE,
+        WEEKLY_ACCESSORY_STORE,
         DAILY_MATCH_SUMMARY_DATA
     }
 
@@ -96,14 +92,15 @@ data class OldUserCache(
     var dailyStorePushLocations: MutableMap<Long, Boolean> = mutableMapOf()
 )
 
-class OldUserCacheDataStructureAdapter: JsonStorage<MutableMap<Long, OldUserCache>>("user-cache", StoragePathEnum.DATA_PATH, serializer()) {
+class OldUserCacheDataStructureAdapter :
+    JsonStorage<MutableMap<Long, OldUserCache>>("user-cache", StoragePathEnum.DATA_PATH, serializer()) {
 
 
     suspend fun adapt(): MutableMap<Long, UserCache>? {
         fun convertDailyStorePushLocates(map: MutableMap<Long, Boolean>): MutableMap<Long, UserCache.ContactEnum> =
             map.mapValues {
                 var isGroup = false
-                for (bot in Bot.instances) {
+                for (bot in getOnlineBots()) {
                     if (bot.getGroup(it.key) != null) {
                         isGroup = true
                         break

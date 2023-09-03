@@ -26,7 +26,7 @@ object EventHandler : SimpleListenerHost() {
     private val log: MiraiLogger = MiraiLogger.Factory.create(this::class)
 
     override fun handleException(context: CoroutineContext, exception: Throwable) {
-        log.warning("io.tiangou.EventHandler exception catcher: catch an exception:$exception")
+        log.warning("io.tiangou.EventHandler exception catcher: catch an exception", exception)
     }
 
     @EventHandler
@@ -45,7 +45,7 @@ object EventHandler : SimpleListenerHost() {
 
     @EventHandler
     suspend fun MessageEvent.onMessage() {
-        if (!checkMessageAllow()) {
+        if (!isMessageAllow()) {
             return
         }
         val userCache = UserCacheRepository[sender.id]
@@ -72,10 +72,11 @@ object EventHandler : SimpleListenerHost() {
                         }
                     }.onFailure {
                         when (it) {
-                            is ValorantRuntimeException -> {
+                            is ValorantPluginException -> {
                                 log.warning("qq user:[${sender.id}]", it)
                                 reply("${it.message}")
                             }
+
                             is CancellationException -> {}
                             else -> {
                                 log.warning("processing valorant bot logic throw throwable", it)
@@ -93,14 +94,10 @@ object EventHandler : SimpleListenerHost() {
         }
     }
 
-    private suspend fun MessageEvent.checkMessageAllow(): Boolean {
+    private suspend fun MessageEvent.isMessageAllow(): Boolean {
         if (Bot.getInstanceOrNull(sender.id) != null) {
             return false
         }
-        return isAllow()
-    }
-
-    private suspend fun MessageEvent.isAllow(): Boolean {
         if (this is GroupMessageEvent) {
             if (!isGroupMessageAllow()) {
                 return false

@@ -1,7 +1,7 @@
 package io.tiangou
 
 import java.io.File
-import java.util.UUID
+import java.util.*
 
 
 sealed interface ByteArrayCache {
@@ -14,9 +14,10 @@ sealed interface ByteArrayCache {
 
 }
 
-class FileByteArrayCache: ByteArrayCache {
+class FileByteArrayCache : ByteArrayCache {
 
-    private val cacheElement: File = Global.pluginCacheFolder.resolve(UUID.randomUUID().toString()).apply { deleteOnExit() }
+    private val cacheElement: File =
+        Global.pluginCacheFolder.resolve(UUID.randomUUID().toString()).apply { deleteOnExit() }
 
     override fun get(): ByteArray? = cacheElement.takeIf { it.exists() }?.readBytes()
 
@@ -32,7 +33,7 @@ class FileByteArrayCache: ByteArrayCache {
     }
 }
 
-class MemoryByteArrayCache: ByteArrayCache {
+class MemoryByteArrayCache : ByteArrayCache {
 
     private var cacheElement: ByteArray? = null
 
@@ -48,10 +49,9 @@ class MemoryByteArrayCache: ByteArrayCache {
 }
 
 
-
 object CacheFactory {
 
-    fun create() = when(Global.drawImageConfig.cache) {
+    fun create() = when (Global.drawImageConfig.cache) {
         CacheType.MEMORY -> MemoryByteArrayCache()
         CacheType.FILE -> FileByteArrayCache()
     }

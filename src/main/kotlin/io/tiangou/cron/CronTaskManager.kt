@@ -28,7 +28,8 @@ object CronTaskManager : AutoSavePluginConfig("cron-task") {
         mutableListOf(
             DailyStorePushTask("0 10 08 * * ? *", true),
             PersistenceDataFlushTask("0 0 9 ? * 7 *", true),
-            RiotAccountSecurityDataFlushTask("0 30 4,12,20 * * ? *", true)
+            RiotAccountSecurityDataFlushTask("0 30 4,12,20 * * ? *", true),
+            RiotAccountLoginExpiredTask("0 0 12 * * ? *", true)
         )
     )
 

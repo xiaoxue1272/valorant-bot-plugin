@@ -32,7 +32,7 @@ abstract class GuiLibraryLoader {
         log.info("$libDescription library loaded")
     }
 
-     fun Path.create(block: suspend Path.() -> Unit): Path {
+    fun Path.create(block: suspend Path.() -> Unit): Path {
         if (!exists()) {
             if (!parent.exists()) parent.createDirectories()
             createFile()
@@ -52,6 +52,7 @@ abstract class GuiLibraryLoader {
                     System.setProperty("skiko.library.path", absolutePathString())
                     Library.load()
                 }
+
                 AWT -> {}
             }
         }

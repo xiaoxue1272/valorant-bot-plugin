@@ -54,7 +54,7 @@ object ImageGenerator {
         userCache.riotClientData.puuid?.let { caches[it] }?.get(type)?.clean()
     }
 
-    private fun createImageContainer(): ImageContainer = when(Global.drawImageConfig.api) {
+    private fun createImageContainer(): ImageContainer = when (Global.drawImageConfig.api) {
         DrawImageApiEnum.SKIKO -> SkikoImageContainer()
         DrawImageApiEnum.AWT -> AwtImageContainer()
     }
@@ -83,7 +83,8 @@ object ImageGenerator {
                     val lr = it.width * 0.4f
                     val imageWidth = it.width - lr
                     val imageHeight = container.height * (imageWidth / container.width)
-                    val top = (it.height - imageHeight * containers.size - it.height * 0.05f * (containers.size - 1)) / 2
+                    val top =
+                        (it.height - imageHeight * containers.size - it.height * 0.05f * (containers.size - 1)) / 2
                     it.drawImage(
                         container.generate(),
                         imageWidth.toInt(),
@@ -128,13 +129,14 @@ object ImageGenerator {
             init(width, height)
             var heightY = height / 2
             val fontSize = height / 12
-            paddingBackgroundColor( "#707070", 0.5f)
+            paddingBackgroundColor("#707070", 0.5f)
             data.itemUrl?.takeIf { it.isNotEmpty() }?.let {
-                drawAutoSizeImage(client.get(it).readBytes(),  0.4f)
+                drawAutoSizeImage(client.get(it).readBytes(), 0.4f)
                 heightY = height - (fontSize + fontSize / 5)
             }
             data.itemName?.takeIf { it.isNotEmpty() }?.let { drawHorizonAlignText(it, fontSize, heightY) }
-            data.contractName?.takeIf { it.isNotEmpty() }?.let { drawHorizonAlignText(it, fontSize, height - fontSize / 5) }
+            data.contractName?.takeIf { it.isNotEmpty() }
+                ?.let { drawHorizonAlignText(it, fontSize, height - fontSize / 5) }
         }
 
 }

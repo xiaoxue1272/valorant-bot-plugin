@@ -7,7 +7,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 
-class AwtImageContainer: ImageContainer {
+class AwtImageContainer : ImageContainer {
 
     private lateinit var bufferedImage: BufferedImage
 
@@ -91,12 +91,14 @@ class AwtImageContainer: ImageContainer {
                 Integer.parseInt(colorString.substring(2, 4), 16),
                 Integer.parseInt(colorString.substring(4, 6), 16)
             )
+
             8 -> Color(
                 Integer.parseInt(colorString.substring(0, 2), 16),
                 Integer.parseInt(colorString.substring(2, 4), 16),
                 Integer.parseInt(colorString.substring(4, 6), 16),
                 Integer.parseInt(colorString.substring(6, 8), 16),
             )
+
             else -> throw IllegalArgumentException("str is not RGB or RGBA format")
         }
     }

@@ -2,7 +2,8 @@ package io.tiangou.logic
 
 import io.tiangou.reply
 import io.tiangou.repository.LogicRepository
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import net.mamoe.mirai.event.events.MessageEvent
 import net.mamoe.mirai.message.data.MessageChainBuilder
 
@@ -26,7 +27,6 @@ class LogicController {
                 .append(it.joinToString("\n\n"))
                 .build()
         }
-
 
 
 }

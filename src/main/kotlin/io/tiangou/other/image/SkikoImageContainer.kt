@@ -3,7 +3,7 @@ package io.tiangou.other.image
 import io.tiangou.Global
 import org.jetbrains.skia.*
 
-class SkikoImageContainer: ImageContainer {
+class SkikoImageContainer : ImageContainer {
 
     private lateinit var surface: Surface
 
@@ -41,7 +41,12 @@ class SkikoImageContainer: ImageContainer {
         init(width, height)
         surface.canvas.drawImageRect(
             image,
-            Rect.makeXYWH((width - image.width) / 2f, (height - image.height) / 2f, image.width.toFloat(), image.height.toFloat()),
+            Rect.makeXYWH(
+                (width - image.width) / 2f,
+                (height - image.height) / 2f,
+                image.width.toFloat(),
+                image.height.toFloat()
+            ),
             Paint().setAlphaf(alpha)
         )
         return this
@@ -81,7 +86,14 @@ class SkikoImageContainer: ImageContainer {
         return this
     }
 
-    override fun drawImage(bytes: ByteArray, imageWidth: Int, imageHeight: Int, left: Int, top: Int, alpha: Float): ImageContainer {
+    override fun drawImage(
+        bytes: ByteArray,
+        imageWidth: Int,
+        imageHeight: Int,
+        left: Int,
+        top: Int,
+        alpha: Float
+    ): ImageContainer {
         val image = byteToImage(bytes)
         surface.canvas.drawImageRect(
             image,

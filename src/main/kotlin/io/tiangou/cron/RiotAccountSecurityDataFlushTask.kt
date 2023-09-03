@@ -1,5 +1,6 @@
 package io.tiangou.cron
 
+import io.tiangou.api.ApiException
 import io.tiangou.api.RiotApi
 import io.tiangou.other.http.actions
 import io.tiangou.repository.UserCacheRepository
@@ -21,6 +22,7 @@ class RiotAccountSecurityDataFlushTask(
                         flushAccessToken(RiotApi.CookieReAuth.execute())
                         flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
                     }.onFailure {
+                        if (it is ApiException) isRiotAccountLogin = false
                         log.warning("Valorant安全令牌刷新任务,QQ:[${entry.key}],异常信息:", it)
                     }
                 }

@@ -3,7 +3,7 @@ package io.tiangou.api
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.tiangou.ValorantRuntimeException
+import io.tiangou.ValorantPluginException
 import io.tiangou.other.http.client
 import io.tiangou.other.http.isRedirect
 
@@ -40,12 +40,12 @@ internal suspend fun tryRequest(
             }
         }
     }
-    throw ApiException(ApiErrorEnum.API_REQUEST_FAILED_AND_RETRY_OVER)
+    throw ValorantPluginException("API请求失败,且重试次数已达上限,请稍候再试")
 }
 
 class ApiException(
     message: String
-) : ValorantRuntimeException(message) {
+) : ValorantPluginException(message) {
 
     constructor(errorEnum: ApiErrorEnum) : this(errorEnum.errorMessage)
 
@@ -54,8 +54,6 @@ class ApiException(
 enum class ApiErrorEnum(
     val errorMessage: String
 ) {
-
-    API_REQUEST_FAILED_AND_RETRY_OVER("API请求失败,且重试次数已达上限,请稍候再试"),
 
     API_REQUEST_FAILED_GET_ENTITLEMENTS_TOKEN("entitlements_token获取失败,请重新登录"),
 

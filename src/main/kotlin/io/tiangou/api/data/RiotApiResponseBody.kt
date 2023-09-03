@@ -15,13 +15,16 @@ data class AuthResponse(
 ) {
 
     @Serializable
-    enum class TypeEnum{
+    enum class TypeEnum {
         @SerialName("multifactor")
         MULTI_FACTOR,
+
         @SerialName("response")
         RESPONSE,
+
         @SerialName("error")
         ERROR,
+
         @SerialName("auth")
         AUTH,
     }
