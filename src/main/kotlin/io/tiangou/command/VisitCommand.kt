@@ -54,7 +54,7 @@ object VisitCommand : CompositeCommand(
 
     @SubCommand("change")
     @Description("修改访问类型 当前为白名单则更新为黑名单,反之同理")
-    suspend fun change(context: CommandContext, needClear: Boolean = false) {
+    suspend fun change(context: CommandContext, needClean: Boolean = false) {
         if (!context.checkPermission()) {
             return
         }
@@ -62,10 +62,11 @@ object VisitCommand : CompositeCommand(
             VisitControlEnum.WHITE_LIST -> VisitControlEnum.BLACK_LIST
             VisitControlEnum.BLACK_LIST -> VisitControlEnum.WHITE_LIST
         }
-        if (needClear) {
+        if (needClean) {
             VisitConfig.onGroups.clear()
             VisitConfig.onUsers.clear()
         }
+        context.sender.reply("OK")
     }
 
     @SubCommand("add group")
@@ -75,6 +76,7 @@ object VisitCommand : CompositeCommand(
             return
         }
         VisitConfig.onGroups.add(group)
+        context.sender.reply("OK")
     }
 
     @SubCommand("add user")
@@ -84,6 +86,7 @@ object VisitCommand : CompositeCommand(
             return
         }
         VisitConfig.onUsers.add(user)
+        context.sender.reply("OK")
     }
 
     @SubCommand("remove group")
@@ -93,6 +96,7 @@ object VisitCommand : CompositeCommand(
             return
         }
         VisitConfig.onGroups.remove(group)
+        context.sender.reply("OK")
     }
 
     @SubCommand("remove user")
@@ -102,6 +106,7 @@ object VisitCommand : CompositeCommand(
             return
         }
         VisitConfig.onUsers.remove(user)
+        context.sender.reply("OK")
     }
 
 }

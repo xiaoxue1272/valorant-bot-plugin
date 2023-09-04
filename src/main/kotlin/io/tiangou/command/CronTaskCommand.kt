@@ -3,7 +3,7 @@ package io.tiangou.command
 import io.tiangou.ValorantBotPlugin
 import io.tiangou.checkPermission
 import io.tiangou.cron.CronTaskManager
-import io.tiangou.cron.Task
+import io.tiangou.cron.CronTask
 import io.tiangou.reply
 import net.mamoe.mirai.console.command.CommandContext
 import net.mamoe.mirai.console.command.CompositeCommand
@@ -12,10 +12,10 @@ import net.mamoe.mirai.message.data.MessageChainBuilder
 object CronTaskCommand : CompositeCommand(
     ValorantBotPlugin,
     "task",
-    description = "Valorant Plugin Task Operations"
+    description = "Valorant Plugin CronTask Operations"
 ) {
 
-    private suspend fun getTaskByString(context: CommandContext, arg: String): Task? {
+    private suspend fun getTaskByString(context: CommandContext, arg: String): CronTask? {
         val task = CronTaskManager.find(arg)
         if (task == null) {
             context.sender.reply("未找到符合的任务,请检查输入")
@@ -30,7 +30,7 @@ object CronTaskCommand : CompositeCommand(
             return
         }
         val builder = MessageChainBuilder()
-        CronTaskManager.allTask(true).forEach {
+        CronTaskManager.allTask().forEach {
             builder.append("[${it::class.simpleName!!}] [${it.description}] isEnable: ${it.isEnable}\n")
         }
         context.sender.reply(builder.build())
@@ -42,7 +42,8 @@ object CronTaskCommand : CompositeCommand(
         if (!context.checkPermission()) {
             return
         }
-        getTaskByString(context, arg)?.executeRunCaching()
+        getTaskByString(context, arg)?.run()
+        context.sender.reply("OK")
     }
 
     @SubCommand("update")
@@ -55,6 +56,7 @@ object CronTaskCommand : CompositeCommand(
                 enable()
             }
         }
+        context.sender.reply("OK")
     }
 
 
@@ -65,6 +67,7 @@ object CronTaskCommand : CompositeCommand(
             return
         }
         getTaskByString(context, arg)?.apply { isEnable = true }?.enable()
+        context.sender.reply("OK")
     }
 
     @SubCommand("disable")
@@ -74,6 +77,7 @@ object CronTaskCommand : CompositeCommand(
             return
         }
         getTaskByString(context, arg)?.apply { isEnable = false }?.disable()
+        context.sender.reply("OK")
     }
 
 }

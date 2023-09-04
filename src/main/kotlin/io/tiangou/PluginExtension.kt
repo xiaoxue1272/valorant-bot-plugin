@@ -18,10 +18,8 @@ import net.mamoe.mirai.console.data.ValueDescription
 import net.mamoe.mirai.console.data.value
 import net.mamoe.mirai.console.permission.PermissionService.Companion.hasPermission
 import net.mamoe.mirai.console.plugin.PluginManager
-import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.contact.Group
-import net.mamoe.mirai.contact.Member
 import net.mamoe.mirai.contact.User
 import net.mamoe.mirai.event.EventPriority
 import net.mamoe.mirai.event.GlobalEventChannel
@@ -57,20 +55,20 @@ suspend fun MessageEvent.nextMessageEvent(): MessageEvent =
     ) { it.sender.id == sender.id && it.toText() != Global.eventConfig.exitLogicCommand }
 
 
-suspend fun MessageEvent.reply(message: String) {
+suspend infix fun MessageEvent.reply(message: String) {
     when (this) {
         is GroupMessageEvent -> group.sendMessage(
-            MessageChainBuilder().append(At(sender)).append("\n").append(message).build()
+            MessageChainBuilder().append(sender.at()).append("\n").append(message).build()
         )
 
         else -> sender.sendMessage(message)
     }
 }
 
-suspend fun MessageEvent.reply(message: Message) {
+suspend infix fun MessageEvent.reply(message: Message) {
     when (this) {
         is GroupMessageEvent -> group.sendMessage(
-            MessageChainBuilder().append(At(sender)).append("\n").append(message).build()
+            MessageChainBuilder().append(sender.at()).append("\n").append(message).build()
         )
 
         else -> sender.sendMessage(message)
@@ -79,43 +77,31 @@ suspend fun MessageEvent.reply(message: Message) {
 
 suspend fun Contact.reply(message: String, target: User? = null) =
     when (this) {
-        is Group -> {
-            if (target != null) {
-                if (contains(target.id))
-                    sendMessage(
-                        MessageChainBuilder().append(target.cast<Member>().at()).append("\n").append(message).build()
-                    )
-                else null
-            } else sendMessage(MessageChainBuilder().append(message).build())
-        }
+        is Group -> sendMessage(MessageChainBuilder().apply { if (target != null) append(At(target.id)) }.append("\n").append(message).build())
 
         else -> sendMessage(message)
     }
 
 suspend fun Contact.reply(message: Message, target: User? = null) =
     when (this) {
-        is Group -> {
-            if (target != null) {
-                if (contains(target.id))
-                    sendMessage(
-                        MessageChainBuilder().append(target.cast<Member>().at()).append("\n").append(message).build()
-                    )
-                else null
-            } else sendMessage(MessageChainBuilder().append(message).build())
-        }
+        is Group -> sendMessage(MessageChainBuilder().apply { if (target != null) append(At(target.id)) }.append("\n").append(message).build())
 
         else -> sendMessage(message)
     }
 
-internal suspend fun MessageEvent.isVisitAllow(qq: Long): Boolean {
-    if (!isVisitAllow(qq, bot)) reply("[$qq],暂无访问权限")
+suspend infix fun Contact.reply(message: String) = reply(message, null)
+
+suspend infix fun Contact.reply(message: Message) = reply(message, null)
+
+internal suspend infix fun MessageEvent.isVisitAllow(qq: Long): Boolean {
+    if (!isVisitAllow(qq, bot)) {
+        reply("[$qq],暂无访问权限")
+        return false
+    }
     return true
 }
 
-internal suspend fun MessageEvent.isVisitAllow(): Boolean {
-    isVisitAllow(sender.id)
-    return true
-}
+internal suspend fun MessageEvent.isVisitAllow(): Boolean = isVisitAllow(sender.id)
 
 fun isVisitAllow(qq: Long, bot: Bot): Boolean {
     val contact: Contact = bot.getContact(qq) ?: return false
@@ -136,7 +122,7 @@ fun Contact.getVisitControlList() = when (this) {
     else -> VisitConfig.onUsers
 }
 
-suspend fun CommandSender.reply(message: String) {
+suspend infix fun CommandSender.reply(message: String) {
     if (subject != null && subject is Group) {
         sendMessage(
             MessageChainBuilder()
@@ -147,7 +133,7 @@ suspend fun CommandSender.reply(message: String) {
     } else sendMessage(message)
 }
 
-suspend fun CommandSender.reply(message: Message) {
+suspend infix fun CommandSender.reply(message: Message) {
     if (subject != null && subject is Group) {
         sendMessage(
             MessageChainBuilder()
@@ -169,7 +155,7 @@ suspend fun uploadImage(bytes: ByteArray, contact: Contact, bot: Bot): Image? {
     return uploadImage.isUploaded(bot).takeIf { it }?.let { uploadImage }
 }
 
-suspend fun MessageEvent.replyImage(bytes: ByteArray) {
+suspend infix fun MessageEvent.replyImage(bytes: ByteArray) {
     uploadImage(bytes, subject, bot)?.apply {
         reply(MessageChainBuilder().append(this).build())
     } ?: reply("图片上传失败,请稍候重试")

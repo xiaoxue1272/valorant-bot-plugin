@@ -4,10 +4,10 @@ import io.tiangou.repository.persistnce.PersistenceDataInitiator
 import kotlinx.serialization.Serializable
 
 @Serializable
-class PersistenceDataFlushTask(
+class PersistenceDataFlushCronTask(
     override var cron: String,
     override var isEnable: Boolean
-) : Task() {
+) : CronTask() {
 
     override val description: String = "Valorant数据更新"
 

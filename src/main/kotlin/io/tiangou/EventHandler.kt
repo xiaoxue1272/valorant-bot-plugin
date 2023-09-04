@@ -126,12 +126,12 @@ object EventHandler : SimpleListenerHost() {
             GroupMessageHandleEnum.ALL -> true
         }
 
-    private suspend fun MessageEvent.inputNotFoundHandle(msg: String) {
-        if (Global.eventConfig.isWarnOnInputNotFound) reply(msg)
+    private suspend infix fun MessageEvent.inputNotFoundHandle(message: String) {
+        if (Global.eventConfig.isWarnOnInputNotFound) reply(message)
     }
 
-    private suspend fun MessageEvent.inputNotFoundHandle(msg: Message) {
-        if (Global.eventConfig.isWarnOnInputNotFound) reply(msg)
+    private suspend infix fun MessageEvent.inputNotFoundHandle(message: Message) {
+        if (Global.eventConfig.isWarnOnInputNotFound) reply(message)
     }
 
 }

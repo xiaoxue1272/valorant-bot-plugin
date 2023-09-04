@@ -5,6 +5,7 @@ package io.tiangou.repository
 import io.tiangou.*
 import io.tiangou.api.RiotClientData
 import io.tiangou.logic.LogicController
+import io.tiangou.other.image.GenerateImageType
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.Serializable
@@ -28,6 +29,9 @@ data class UserCache(
 
     @Transient
     val logicController: LogicController = LogicController()
+
+    @Transient
+    val generateImageCaches: MutableMap<GenerateImageType, ByteArrayCache> = mutableMapOf()
 
     @Serializable
     enum class ContactEnum {

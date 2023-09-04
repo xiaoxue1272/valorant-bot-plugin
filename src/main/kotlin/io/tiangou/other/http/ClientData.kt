@@ -16,7 +16,7 @@ open class ClientData(
 ) : CoroutineContext.Element {
 
     @Transient
-    override val key: CoroutineContext.Key<*> = ClientData
+    override val key: CoroutineContext.Key<ClientData> = ClientData
 
     companion object Key : CoroutineContext.Key<ClientData>
 

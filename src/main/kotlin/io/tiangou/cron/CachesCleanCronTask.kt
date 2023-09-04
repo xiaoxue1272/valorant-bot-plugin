@@ -2,13 +2,13 @@ package io.tiangou.cron
 
 import io.ktor.util.date.*
 import io.tiangou.api.StoreApiHelper
-import io.tiangou.other.image.GenerateStoreImageType
+import io.tiangou.other.image.GenerateImageType
 import io.tiangou.other.image.ImageGenerator
 import io.tiangou.repository.UserCacheRepository
 import java.time.ZoneId
 import java.util.*
 
-object CachesCleanTask : Task() {
+object CachesCleanCronTask : CronTask() {
 
     override val description: String = "生成缓存清理"
 
@@ -28,9 +28,9 @@ object CachesCleanTask : Task() {
         UserCacheRepository.getAllUserCache().forEach {
             it.value.synchronized {
                 StoreApiHelper.clean(this)
-                ImageGenerator.clean(this, GenerateStoreImageType.SKINS_PANEL_LAYOUT)
+                ImageGenerator.clean(this, GenerateImageType.SKINS_PANEL_LAYOUT)
                 if (GMTDate().dayOfWeek == WeekDay.WEDNESDAY) {
-                    ImageGenerator.clean(this, GenerateStoreImageType.ACCESSORY_STORE)
+                    ImageGenerator.clean(this, GenerateImageType.ACCESSORY_STORE)
                 }
             }
         }
@@ -40,6 +40,6 @@ object CachesCleanTask : Task() {
         super.enable()
         log.info("已启用任务 [${this::class.simpleName}]")
         log.warning("请注意,该任务为后台任务,无法停用,启用,手动触发和修改")
-        job?.invokeOnCompletion { if (it != null) log.info("已取消任务 [CachesCleanTask]") }
+        job?.invokeOnCompletion { if (it != null) log.info("已取消任务 [CachesCleanCronTask]") }
     }
 }

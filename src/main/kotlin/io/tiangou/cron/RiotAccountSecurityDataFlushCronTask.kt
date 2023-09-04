@@ -7,10 +7,10 @@ import io.tiangou.repository.UserCacheRepository
 import kotlinx.serialization.Serializable
 
 @Serializable
-class RiotAccountSecurityDataFlushTask(
+class RiotAccountSecurityDataFlushCronTask(
     override var cron: String,
     override var isEnable: Boolean
-) : Task() {
+) : CronTask() {
 
     override val description: String = "Riot账号安全令牌刷新"
 

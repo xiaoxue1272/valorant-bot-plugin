@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * 生成图片类型
  */
-enum class GenerateStoreImageType {
+enum class GenerateImageType {
 
     SKINS_PANEL_LAYOUT,
     ACCESSORY_STORE,
@@ -30,16 +30,16 @@ object ImageGenerator {
 
     private val hp: Int = 16
 
-    private val caches: ConcurrentHashMap<String, MutableMap<GenerateStoreImageType, ByteArrayCache>> by lazy { ConcurrentHashMap() }
+    private val caches: ConcurrentHashMap<String, MutableMap<GenerateImageType, ByteArrayCache>> by lazy { ConcurrentHashMap() }
 
     suspend fun getCacheOrGenerate(
         userCache: UserCache,
-        type: GenerateStoreImageType,
-        block: suspend ImageGenerator.(GenerateStoreImageType) -> ByteArray
+        type: GenerateImageType,
+        block: suspend ImageGenerator.(GenerateImageType) -> ByteArray
     ): ByteArray = userCache.synchronous {
         val key = riotClientData.puuid!!
         val cacheTypeElements = caches[key]
-            ?: mutableMapOf<GenerateStoreImageType, ByteArrayCache>().apply { caches[key] = this }
+            ?: mutableMapOf<GenerateImageType, ByteArrayCache>().apply { caches[key] = this }
         val cache = cacheTypeElements[type] ?: CacheFactory.create().apply {
             cacheTypeElements[type] = this
         }
@@ -50,7 +50,7 @@ object ImageGenerator {
         userCache.riotClientData.puuid?.let { caches[it] }?.forEach { it.value.clean() }
     }
 
-    fun clean(userCache: UserCache, type: GenerateStoreImageType) {
+    fun clean(userCache: UserCache, type: GenerateImageType) {
         userCache.riotClientData.puuid?.let { caches[it] }?.get(type)?.clean()
     }
 
@@ -59,7 +59,7 @@ object ImageGenerator {
         DrawImageApiEnum.AWT -> AwtImageContainer()
     }
 
-    suspend fun storeImage(userCache: UserCache, type: GenerateStoreImageType): ByteArray {
+    suspend fun storeImage(userCache: UserCache, type: GenerateImageType): ByteArray {
         val storeFront = StoreApiHelper.queryStoreFront(userCache)
         return createImageContainer().let {
             val backgroundBytes = userCache.customBackgroundFile?.readBytes()
@@ -68,12 +68,12 @@ object ImageGenerator {
             val width = (it.width - it.width * 0.4f).toInt()
             val height = width / 2
             val containers = when (type) {
-                GenerateStoreImageType.SKINS_PANEL_LAYOUT ->
+                GenerateImageType.SKINS_PANEL_LAYOUT ->
                     SkinsPanelLayout.convert(storeFront).map { data ->
                         skinsPanelLayoutImage(width, height, data)
                     }
 
-                GenerateStoreImageType.ACCESSORY_STORE ->
+                GenerateImageType.ACCESSORY_STORE ->
                     AccessoryStore.convert(storeFront).map { data ->
                         accessoryStoreImage(width, height, data)
                     }

@@ -1,7 +1,7 @@
 package io.tiangou.cron
 
 import io.tiangou.*
-import io.tiangou.other.image.GenerateStoreImageType
+import io.tiangou.other.image.GenerateImageType
 import io.tiangou.other.image.ImageGenerator
 import io.tiangou.repository.UserCache
 import io.tiangou.repository.UserCacheRepository
@@ -14,10 +14,10 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @Serializable
-class DailyStorePushTask(
+class DailyStorePushCronTask(
     override var cron: String,
     override var isEnable: Boolean
-) : Task() {
+) : CronTask() {
 
 
     override val description: String = "每日商店推送"
@@ -32,7 +32,7 @@ class DailyStorePushTask(
                     ?.runCatching {
                         val skinsPanelLayoutImage = ImageGenerator.getCacheOrGenerate(
                             userCache,
-                            GenerateStoreImageType.SKINS_PANEL_LAYOUT,
+                            GenerateImageType.SKINS_PANEL_LAYOUT,
                         ) { storeImage(userCache, it) }
                         locations.forEach { location ->
                             location.contacts.forEach { contact ->

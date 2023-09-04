@@ -12,7 +12,7 @@ import io.tiangou.api.data.AuthResponse
 import io.tiangou.api.data.MultiFactorAuthRequest
 import io.tiangou.other.http.actions
 import io.tiangou.other.http.client
-import io.tiangou.other.image.GenerateStoreImageType
+import io.tiangou.other.image.GenerateImageType
 import io.tiangou.other.image.ImageGenerator
 import io.tiangou.repository.UserCache
 import kotlinx.coroutines.runBlocking
@@ -52,13 +52,13 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         var currentEvent = this
-        currentEvent.reply("请输入Riot账号,待机器人回复消息后撤回")
+        currentEvent reply "请输入Riot账号,待机器人回复消息后撤回"
         currentEvent = nextMessageEvent()
         val account = currentEvent.toText()
-        currentEvent.reply("请输入Riot密码,待机器人回复消息后撤回")
+        currentEvent reply "请输入Riot密码,待机器人回复消息后撤回"
         currentEvent = nextMessageEvent()
         val password = currentEvent.toText()
-        currentEvent.reply("请稍等,正在登录")
+        currentEvent reply "请稍等,正在登录"
         userCache.synchronous {
             riotClientData.actions {
                 // 因为cookie问题 如果是重复登录的话 登录不上去 所以清空
@@ -74,7 +74,7 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
                         currentEvent.verifyMultiAuthCode(userCache)
                     }
 
-                    else -> currentEvent.reply("登录失败,请检查用户名和密码是否正确")
+                    else -> currentEvent reply "登录失败,请检查用户名和密码是否正确"
                 }
             }
         }
@@ -84,14 +84,14 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
         reply("请输入二步验证码")
         val currentEvent = nextMessageEvent()
         val verifyCode = currentEvent.toText()
-        currentEvent.reply("请稍等,正在验证")
+        currentEvent reply "请稍等,正在验证"
         val authResponse = RiotApi.MultiFactorAuth.execute(MultiFactorAuthRequest(verifyCode))
         when (authResponse.type) {
             AuthResponse.TypeEnum.RESPONSE -> {
                 afterLogin(userCache, authResponse.response!!.parameters.uri)
             }
 
-            else -> currentEvent.reply("登录失败,请重新登录")
+            else -> currentEvent reply "登录失败,请重新登录"
         }
     }
 
@@ -119,14 +119,14 @@ object ChangeLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
                 userCache.synchronous {
                     riotClientData.shard = it.shard
                     riotClientData.region = it.region
-                    currentEvent.reply("设置成功")
+                    currentEvent reply "设置成功"
                     ImageGenerator.clean(userCache)
                     StoreApiHelper.clean(userCache)
                 }
                 return
             }
         }
-        currentEvent.reply("未找到输入的地区")
+        currentEvent reply "未找到输入的地区"
     }
 
 }
@@ -163,7 +163,7 @@ object QueryPlayerDailyStoreProcessor : LogicProcessor<MessageEvent> {
         reply("正在查询每日商店,请稍等")
         val skinsPanelLayoutImage = ImageGenerator.getCacheOrGenerate(
             userCache,
-            GenerateStoreImageType.SKINS_PANEL_LAYOUT,
+            GenerateImageType.SKINS_PANEL_LAYOUT,
         ) { storeImage(userCache, it) }
         replyImage(skinsPanelLayoutImage)
     }
@@ -217,7 +217,7 @@ object QueryPlayerAccessoryStoreProcessor : LogicProcessor<MessageEvent> {
         reply("正在查询配件商店,请稍等")
         val accessoryStoreImage = ImageGenerator.getCacheOrGenerate(
             userCache,
-            GenerateStoreImageType.ACCESSORY_STORE,
+            GenerateImageType.ACCESSORY_STORE,
         ) { storeImage(userCache, it) }
         replyImage(accessoryStoreImage)
     }
