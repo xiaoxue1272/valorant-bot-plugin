@@ -387,3 +387,13 @@ enum class VisitControlEnum {
 }
 
 open class ValorantPluginException(override val message: String?) : Exception()
+
+/**
+ * 生成图片类型
+ */
+enum class GenerateImageType {
+
+    SKINS_PANEL_LAYOUT,
+    ACCESSORY_STORE,
+
+}

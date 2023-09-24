@@ -5,7 +5,6 @@ package io.tiangou.repository
 import io.tiangou.*
 import io.tiangou.api.RiotClientData
 import io.tiangou.logic.LogicController
-import io.tiangou.other.image.GenerateImageType
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.Serializable
@@ -21,7 +20,7 @@ data class UserCache(
     var subscribeDailyStore: Boolean = false,
     var subscribeList: List<SubscribeType> = listOf(),
     var customBackgroundFile: File? = null,
-    var dailyStorePushLocates: MutableMap<Long, ContactEnum> = mutableMapOf(),
+    var subscribePushLocates: MutableMap<Long, SubscribeData> = mutableMapOf(),
 ) {
 
     @Transient
@@ -31,7 +30,7 @@ data class UserCache(
     val logicController: LogicController = LogicController()
 
     @Transient
-    val generateImageCaches: MutableMap<GenerateImageType, ByteArrayCache> = mutableMapOf()
+    val generateImages: MutableMap<GenerateImageType, ByteArrayCache> = mutableMapOf()
 
     @Serializable
     enum class ContactEnum {
@@ -40,10 +39,37 @@ data class UserCache(
     }
 
     @Serializable
-    enum class SubscribeType {
-        DAILY_STORE,
-        WEEKLY_ACCESSORY_STORE,
-        DAILY_MATCH_SUMMARY_DATA
+    enum class SubscribeType(
+        val value : String
+    ) {
+        DAILY_STORE("每日商店"),
+        WEEKLY_ACCESSORY_STORE("每周配件商店"),
+        DAILY_MATCH_SUMMARY_DATA("每日比赛数据统计");
+
+
+        companion object {
+
+            fun findByValue(value: String): SubscribeType = SubscribeType.values().firstOrNull { it.value == value } ?: throw ValorantPluginException("无效的订阅类型")
+
+
+        }
+
+
+    }
+
+
+    @Serializable
+    data class SubscribeData(
+        val contactEnum: ContactEnum,
+        val subscribeTypeList: MutableList<SubscribeType> = mutableListOf()
+    ) {
+
+        fun subscribeAll(): SubscribeData = apply { subscribeTypeList.addAll(SubscribeType.values()) }
+
+        fun subscribe(type: SubscribeType): SubscribeData = apply { subscribeTypeList.add(type) }
+
+        fun subscribe(value: String): SubscribeData = apply { subscribeTypeList.add(SubscribeType.findByValue(value)) }
+
     }
 
     suspend inline fun <reified T> synchronous(crossinline block: suspend UserCache.() -> T): T {
@@ -70,63 +96,62 @@ object UserCacheRepository : AutoFlushStorage<MutableMap<Long, UserCache>>(
     override suspend fun load(): MutableMap<Long, UserCache>? = try {
         super.load()
     } catch (e: Exception) {
-        OldUserCacheDataStructureAdapter().adapt()
+        null
     }
 
     init {
         registry()
     }
 
-    operator fun get(qq: Long): UserCache = data[qq] ?: UserCache().apply {
-        data[qq] = this
-        dailyStorePushLocates.takeIf { it.isEmpty() }?.let { dailyStorePushLocates[qq] = UserCache.ContactEnum.USER }
-    }
+    operator fun get(qq: Long): UserCache = data.getOrDefault(qq, UserCache().apply {
+        subscribePushLocates.takeIf { it.isEmpty() }?.put(qq, UserCache.SubscribeData(UserCache.ContactEnum.USER).subscribeAll())
+    })
 
     fun getAllUserCache(): Map<Long, UserCache> = data
 
 }
 
 
-@Serializable
-data class OldUserCache(
-    val riotClientData: RiotClientData = RiotClientData(),
-    var isRiotAccountLogin: Boolean = false,
-    var subscribeDailyStore: Boolean = false,
-    var customBackgroundFile: File? = null,
-    var dailyStorePushLocations: MutableMap<Long, Boolean> = mutableMapOf()
-)
-
-class OldUserCacheDataStructureAdapter :
-    JsonStorage<MutableMap<Long, OldUserCache>>("user-cache", StoragePathEnum.DATA_PATH, serializer()) {
-
-
-    suspend fun adapt(): MutableMap<Long, UserCache>? {
-        fun convertDailyStorePushLocates(map: MutableMap<Long, Boolean>): MutableMap<Long, UserCache.ContactEnum> =
-            map.mapValues {
-                var isGroup = false
-                for (bot in getOnlineBots()) {
-                    if (bot.getGroup(it.key) != null) {
-                        isGroup = true
-                        break
-                    }
-                }
-                return@mapValues if (isGroup) {
-                    UserCache.ContactEnum.GROUP
-                } else {
-                    UserCache.ContactEnum.USER
-                }
-            }.toMutableMap()
-
-        return load()?.mapValues {
-            UserCache(
-                it.value.riotClientData,
-                it.value.isRiotAccountLogin,
-                it.value.subscribeDailyStore,
-                customBackgroundFile = it.value.customBackgroundFile,
-                dailyStorePushLocates = convertDailyStorePushLocates(it.value.dailyStorePushLocations)
-            )
-        }?.toMutableMap()
-
-    }
-
-}
+//@Serializable
+//data class OldUserCache(
+//    val riotClientData: RiotClientData = RiotClientData(),
+//    var isRiotAccountLogin: Boolean = false,
+//    var subscribeDailyStore: Boolean = false,
+//    var customBackgroundFile: File? = null,
+//    var dailyStorePushLocations: MutableMap<Long, Boolean> = mutableMapOf()
+//)
+//
+//class OldUserCacheDataStructureAdapter :
+//    JsonStorage<MutableMap<Long, OldUserCache>>("user-cache", StoragePathEnum.DATA_PATH, serializer()) {
+//
+//
+//    suspend fun adapt(): MutableMap<Long, UserCache>? {
+//        fun convertDailyStorePushLocates(map: MutableMap<Long, Boolean>): MutableMap<Long, UserCache.ContactEnum> =
+//            map.mapValues {
+//                var isGroup = false
+//                for (bot in getOnlineBots()) {
+//                    if (bot.getGroup(it.key) != null) {
+//                        isGroup = true
+//                        break
+//                    }
+//                }
+//                return@mapValues if (isGroup) {
+//                    UserCache.ContactEnum.GROUP
+//                } else {
+//                    UserCache.ContactEnum.USER
+//                }
+//            }.toMutableMap()
+//
+//        return load()?.mapValues {
+//            UserCache(
+//                it.value.riotClientData,
+//                it.value.isRiotAccountLogin,
+//                it.value.subscribeDailyStore,
+//                customBackgroundFile = it.value.customBackgroundFile,
+//                subscribePushLocates = convertDailyStorePushLocates(it.value.dailyStorePushLocations)
+//            )
+//        }?.toMutableMap()
+//
+//    }
+//
+//}

@@ -12,7 +12,7 @@ import java.time.ZoneId
 import java.util.*
 
 @Serializable
-abstract class CronTask : AbstractTask() {
+sealed class CronTask : AbstractTask() {
 
     abstract var cron: String
 

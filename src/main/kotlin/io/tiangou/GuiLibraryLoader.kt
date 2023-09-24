@@ -2,7 +2,6 @@ package io.tiangou
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.ktor.util.date.*
 import io.tiangou.DrawImageApiEnum.AWT
 import io.tiangou.DrawImageApiEnum.SKIKO
 import io.tiangou.other.http.client
@@ -122,8 +121,4 @@ object SkikoLibraryLoader : GuiLibraryLoader() {
     }
 
 
-}
-
-fun main() {
-    println(GMTDate(getTimeMillis() + 1535222 * 1000))
 }

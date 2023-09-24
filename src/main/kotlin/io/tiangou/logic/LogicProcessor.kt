@@ -12,7 +12,6 @@ import io.tiangou.api.data.AuthResponse
 import io.tiangou.api.data.MultiFactorAuthRequest
 import io.tiangou.other.http.actions
 import io.tiangou.other.http.client
-import io.tiangou.other.image.GenerateImageType
 import io.tiangou.other.image.ImageGenerator
 import io.tiangou.repository.UserCache
 import kotlinx.coroutines.runBlocking
@@ -98,7 +97,8 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
     private suspend fun MessageEvent.afterLogin(userCache: UserCache, authUrl: String) {
         userCache.apply {
             StoreApiHelper.clean(this)
-            ImageGenerator.clean(this)
+//            ImageGenerator.clean(this)
+            generateImages.clear()
             riotClientData.flushAccessToken(authUrl)
             riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
             riotClientData.puuid = RiotApi.PlayerInfo.execute().sub
@@ -120,7 +120,8 @@ object ChangeLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
                     riotClientData.shard = it.shard
                     riotClientData.region = it.region
                     currentEvent reply "设置成功"
-                    ImageGenerator.clean(userCache)
+//                    ImageGenerator.clean(userCache)
+                    generateImages.clear()
                     StoreApiHelper.clean(userCache)
                 }
                 return
@@ -190,6 +191,7 @@ object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
                 userCache.synchronous {
                     customBackgroundFile?.delete()
                     customBackgroundFile = null
+                    generateImages.clear()
                 }
                 reply("已将背景图片恢复至默认")
             } else {
@@ -201,8 +203,8 @@ object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
                 userCache.synchronous {
                     customBackgroundFile = ValorantBotPlugin.dataFolder.resolve("${sender.id}_background.bkg")
                         .apply { writeBytes(client.get(downloadUrl).readBytes()) }
+                    generateImages.clear()
                 }
-                ImageGenerator.clean(userCache)
                 reply("上传成功")
             }
         }
@@ -238,16 +240,16 @@ object AddLocateToDailyStorePushLocatesProcessor : LogicProcessor<MessageEvent> 
                 text.toLong()
             }
             if (!isVisitAllow(groupId)) return
-            val isGroupNotExists = userCache.dailyStorePushLocates[groupId] == null
+            val isGroupNotExists = userCache.subscribePushLocates[groupId] == null
             if (isGroupNotExists) {
                 if (bot.containsGroup(groupId)) {
-                    userCache.dailyStorePushLocates[groupId] = UserCache.ContactEnum.GROUP
+                    userCache.subscribePushLocates[groupId] = UserCache.ContactEnum.GROUP
                 } else {
                     reply("未找到群[$groupId],请检查Bot是否在指定的群中")
                     return
                 }
             } else {
-                userCache.dailyStorePushLocates.remove(groupId)
+                userCache.subscribePushLocates.remove(groupId)
             }
             reply("已将指定群[${groupId}]的推送状态设置为:${if (isGroupNotExists) "启用" else "停用"}")
         }
@@ -258,18 +260,18 @@ object AddLocateToDailyStorePushLocatesProcessor : LogicProcessor<MessageEvent> 
 object AddCurrentLocateToDailyStorePushLocatesProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
-        val isCurrentLocateNotExists = userCache.dailyStorePushLocates[subject.id] == null
+        val isCurrentLocateNotExists = userCache.subscribePushLocates[subject.id] == null
         if (isCurrentLocateNotExists && isVisitAllow()) {
             if (bot.containsGroup(subject.id)) {
-                userCache.dailyStorePushLocates[subject.id] = UserCache.ContactEnum.GROUP
+                userCache.subscribePushLocates[subject.id] = UserCache.ContactEnum.GROUP
             } else if (bot.containsFriend(subject.id) || bot.getStranger(subject.id) != null) {
-                userCache.dailyStorePushLocates[subject.id] = UserCache.ContactEnum.USER
+                userCache.subscribePushLocates[subject.id] = UserCache.ContactEnum.USER
             } else {
                 reply("暂不支持当前地点")
                 return
             }
         } else {
-            userCache.dailyStorePushLocates.remove(subject.id)
+            userCache.subscribePushLocates.remove(subject.id)
         }
         reply("已将当前地点[${subject.id}]的推送状态设置为:${if (isCurrentLocateNotExists) "启用" else "停用"}")
     }

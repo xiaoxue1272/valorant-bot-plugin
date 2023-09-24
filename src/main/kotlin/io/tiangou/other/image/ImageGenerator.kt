@@ -2,27 +2,13 @@ package io.tiangou.other.image
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.tiangou.ByteArrayCache
-import io.tiangou.CacheFactory
-import io.tiangou.DrawImageApiEnum
-import io.tiangou.Global
+import io.tiangou.*
 import io.tiangou.api.StoreApiHelper
 import io.tiangou.other.http.client
 import io.tiangou.repository.UserCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
-import java.util.concurrent.ConcurrentHashMap
 
-
-/**
- * 生成图片类型
- */
-enum class GenerateImageType {
-
-    SKINS_PANEL_LAYOUT,
-    ACCESSORY_STORE,
-
-}
 
 object ImageGenerator {
 
@@ -30,28 +16,13 @@ object ImageGenerator {
 
     private val hp: Int = 16
 
-    private val caches: ConcurrentHashMap<String, MutableMap<GenerateImageType, ByteArrayCache>> by lazy { ConcurrentHashMap() }
-
     suspend fun getCacheOrGenerate(
         userCache: UserCache,
         type: GenerateImageType,
         block: suspend ImageGenerator.(GenerateImageType) -> ByteArray
     ): ByteArray = userCache.synchronous {
-        val key = riotClientData.puuid!!
-        val cacheTypeElements = caches[key]
-            ?: mutableMapOf<GenerateImageType, ByteArrayCache>().apply { caches[key] = this }
-        val cache = cacheTypeElements[type] ?: CacheFactory.create().apply {
-            cacheTypeElements[type] = this
-        }
+        val cache = generateImages.getOrDefault(type, CacheFactory.create())
         cache.get()?.takeIf { it.isNotEmpty() } ?: block(this@ImageGenerator, type).apply { cache.put(this) }
-    }
-
-    fun clean(userCache: UserCache) {
-        userCache.riotClientData.puuid?.let { caches[it] }?.forEach { it.value.clean() }
-    }
-
-    fun clean(userCache: UserCache, type: GenerateImageType) {
-        userCache.riotClientData.puuid?.let { caches[it] }?.get(type)?.clean()
     }
 
     private fun createImageContainer(): ImageContainer = when (Global.drawImageConfig.api) {

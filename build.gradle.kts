@@ -9,7 +9,7 @@ group = "io.tiangou.plugins"
 version = "0.8.0-dev"
 
 val ktorVersion = "2.3.4"
-val skikoVersion = "0.7.72"
+val skikoVersion = "0.7.80"
 val sqliteJdbcVersion = "3.42.0.0"
 val hutoolVersion = "5.8.20"
 

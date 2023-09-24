@@ -1,7 +1,6 @@
 package io.tiangou.cron
 
 import io.tiangou.*
-import io.tiangou.other.image.GenerateImageType
 import io.tiangou.other.image.ImageGenerator
 import io.tiangou.repository.UserCache
 import io.tiangou.repository.UserCacheRepository
@@ -56,7 +55,7 @@ class DailyStorePushCronTask(
     }
 
     private fun UserCache.filterPushLocations(qq: Long, onlineBots: List<Bot>): List<BotPushLocation> {
-        val currentPushLocates = dailyStorePushLocates.toMutableMap()
+        val currentPushLocates = subscribePushLocates.toMutableMap()
         return mutableListOf<BotPushLocation>().apply {
             for (bot in onlineBots) {
                 val user = bot.getUser(qq)
