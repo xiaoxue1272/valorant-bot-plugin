@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 
 @Serializable
 open class ClientData(
@@ -28,4 +29,4 @@ open class ClientData(
 }
 
 suspend inline fun <reified T : ClientData, reified R> T.actions(crossinline block: suspend T.() -> R) =
-    withContext(this) { block() }
+    withContext(coroutineContext + this) { block() }

@@ -44,8 +44,8 @@ interface Storage<T> {
 enum class StoragePathEnum(
     val path: Path
 ) {
-    CONFIG_PATH(Global.configFolderPath),
-    DATA_PATH(Global.dataFolderPath),
+    CONFIG_PATH(PluginGlobal.configFolderPath),
+    DATA_PATH(PluginGlobal.dataFolderPath),
     ;
 }
 
@@ -97,10 +97,10 @@ open class JsonStorage<T>(
         get() = stringStorage.storeFile
 
     override suspend fun load(): T? =
-        stringStorage.load()?.takeIf { it.isNotEmpty() }?.let { Global.json.decodeFromString(serializer, it) }
+        stringStorage.load()?.takeIf { it.isNotEmpty() }?.let { PluginGlobal.json.decodeFromString(serializer, it) }
 
     override suspend fun store(data: T): T = data.apply {
-        stringStorage.store(Global.json.encodeToString(serializer, data))
+        stringStorage.store(PluginGlobal.json.encodeToString(serializer, data))
     }
 
 }
@@ -137,7 +137,7 @@ abstract class AutoFlushStorage<T : Any>(
         }
 
         init {
-            Global.coroutineScope.launch {
+            PluginGlobal.coroutineScope.launch {
                 while (true) {
                     delay(10.toDuration(DurationUnit.MINUTES))
                     saveData()

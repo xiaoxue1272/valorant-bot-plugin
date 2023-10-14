@@ -1,6 +1,6 @@
 package io.tiangou.other.jdbc
 
-import io.tiangou.Global
+import io.tiangou.config.PluginConfig
 import org.sqlite.JDBC
 import java.sql.Connection
 import java.sql.ResultSet
@@ -9,7 +9,7 @@ import java.util.*
 
 internal object SqliteHelper {
 
-    private val connection: Connection = JDBC.createConnection(Global.databaseConfig.jdbcUrl, Properties())
+    private val connection: Connection = JDBC.createConnection(PluginConfig.databaseConfig.jdbcUrl, Properties())
 
     fun execute(sql: String): Boolean {
         val statement = connection.createStatement()

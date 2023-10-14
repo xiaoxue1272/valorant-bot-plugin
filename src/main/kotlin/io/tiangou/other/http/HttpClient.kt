@@ -8,7 +8,7 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.cookies.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import io.tiangou.Global
+import io.tiangou.PluginGlobal
 import okhttp3.ConnectionPool
 import java.time.Duration
 import java.util.concurrent.TimeUnit
@@ -51,7 +51,7 @@ internal val client: HttpClient = HttpClient(OkHttp) {
         agent = "Apache-HttpClient/4.5.14 (Java/17.0.6)"
     }
     install(ContentNegotiation) {
-        json(Global.json)
+        json(PluginGlobal.json)
     }
 }
 

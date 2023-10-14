@@ -2,6 +2,9 @@
 
 package io.tiangou
 
+import io.tiangou.config.PluginConfig
+import io.tiangou.config.PluginConfig.EventConfigData.GroupMessageHandleEnum
+import io.tiangou.config.VisitConfig
 import io.tiangou.repository.UserCacheRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -31,14 +34,14 @@ object EventHandler : SimpleListenerHost() {
 
     @EventHandler
     suspend fun BotInvitedJoinGroupRequestEvent.onMessage() {
-        if (Global.eventConfig.autoAcceptGroupRequest) {
+        if (PluginConfig.eventConfig.autoAcceptGroupRequest) {
             accept()
         }
     }
 
     @EventHandler
     suspend fun NewFriendRequestEvent.onMessage() {
-        if (Global.eventConfig.autoAcceptFriendRequest) {
+        if (PluginConfig.eventConfig.autoAcceptFriendRequest) {
             accept()
         }
     }
@@ -50,7 +53,7 @@ object EventHandler : SimpleListenerHost() {
         }
         val userCache = UserCacheRepository[sender.id]
         userCache.logicController.apply {
-            if (Global.eventConfig.exitLogicCommand == toText()) {
+            if (PluginConfig.eventConfig.exitLogicCommand == toText()) {
                 exitLogic(this@onMessage)
                 return
             }
@@ -104,11 +107,13 @@ object EventHandler : SimpleListenerHost() {
             }
         }
         when (VisitConfig.controlType) {
-            VisitControlEnum.WHITE_LIST -> if (!subject.getVisitControlList().contains(subject.id)) inputNotFoundHandle(
+            VisitConfig.VisitControlEnum.WHITE_LIST -> if (!subject.getVisitControlList()
+                    .contains(subject.id)
+            ) inputNotFoundHandle(
                 "暂无操作权限"
             ).apply { return false }
 
-            VisitControlEnum.BLACK_LIST -> if (subject.getVisitControlList()
+            VisitConfig.VisitControlEnum.BLACK_LIST -> if (subject.getVisitControlList()
                     .contains(subject.id)
             ) inputNotFoundHandle("暂无操作权限").apply { return false }
         }
@@ -116,7 +121,7 @@ object EventHandler : SimpleListenerHost() {
     }
 
     private fun GroupMessageEvent.isGroupMessageAllow(): Boolean =
-        when (Global.eventConfig.groupMessageHandleStrategy) {
+        when (PluginConfig.eventConfig.groupMessageHandleStrategy) {
             GroupMessageHandleEnum.AT_AND_QUOTE_REPLY -> message.firstIsInstanceOrNull<At>()?.target == bot.id
                     || message.firstIsInstanceOrNull<QuoteReply>()?.source?.fromId == bot.id
 
@@ -127,11 +132,11 @@ object EventHandler : SimpleListenerHost() {
         }
 
     private suspend infix fun MessageEvent.inputNotFoundHandle(message: String) {
-        if (Global.eventConfig.isWarnOnInputNotFound) reply(message)
+        if (PluginConfig.eventConfig.isWarnOnInputNotFound) reply(message)
     }
 
     private suspend infix fun MessageEvent.inputNotFoundHandle(message: Message) {
-        if (Global.eventConfig.isWarnOnInputNotFound) reply(message)
+        if (PluginConfig.eventConfig.isWarnOnInputNotFound) reply(message)
     }
 
 }

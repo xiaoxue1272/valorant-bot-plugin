@@ -17,10 +17,9 @@ import java.io.File
 data class UserCache(
     val riotClientData: RiotClientData = RiotClientData(),
     var isRiotAccountLogin: Boolean = false,
-    var subscribeDailyStore: Boolean = false,
-    var subscribeList: List<SubscribeType> = listOf(),
+    var logoutDay: Int = 0,
     var customBackgroundFile: File? = null,
-    var subscribePushLocates: MutableMap<Long, SubscribeData> = mutableMapOf(),
+    var subscribes: MutableMap<Long, MutableList<SubscribeType>> = mutableMapOf(),
 ) {
 
     @Transient
@@ -30,17 +29,26 @@ data class UserCache(
     val logicController: LogicController = LogicController()
 
     @Transient
-    val generateImages: MutableMap<GenerateImageType, ByteArrayCache> = mutableMapOf()
+    private val imageCaches: MutableMap<GenerateImageType, ByteArrayCache> = mutableMapOf()
 
-    @Serializable
-    enum class ContactEnum {
-        USER,
-        GROUP
-    }
+    fun cacheImage(type: GenerateImageType, byteArray: ByteArray) = imageCaches.put(type, byteArray.cache())
+
+    suspend fun cacheImage(type: GenerateImageType, block: suspend (GenerateImageType) -> ByteArray) =
+        imageCaches.put(type, block(type).cache())
+
+    fun getOrCacheImage(type: GenerateImageType, byteArray: ByteArray) =
+        imageCaches.getOrPut(type) { byteArray.cache() }
+
+    suspend fun getOrCacheImage(type: GenerateImageType, block: suspend (GenerateImageType) -> ByteArray) =
+        imageCaches.getOrPut(type) { block(type).cache() }
+
+    fun clearCacheImages() = imageCaches.clear()
+
+    fun removeCacheImage(type: GenerateImageType) = imageCaches.remove(type)
 
     @Serializable
     enum class SubscribeType(
-        val value : String
+        val value: String
     ) {
         DAILY_STORE("每日商店"),
         WEEKLY_ACCESSORY_STORE("每周配件商店"),
@@ -49,28 +57,29 @@ data class UserCache(
 
         companion object {
 
-            fun findByValue(value: String): SubscribeType = SubscribeType.values().firstOrNull { it.value == value } ?: throw ValorantPluginException("无效的订阅类型")
+            fun findByValue(value: String): SubscribeType? = SubscribeType.values().firstOrNull { it.value == value }
 
+            fun findByValueNotNull(value: String): SubscribeType =
+                findByValue(value) ?: throw ValorantPluginException("无效的订阅类型")
+
+            fun findByName(name: String): SubscribeType? = SubscribeType.values().firstOrNull { it.name == name }
+
+            fun findByNameNotNull(name: String): SubscribeType =
+                findByName(name) ?: throw ValorantPluginException("无效的订阅类型")
+
+            fun find(keywords: String): SubscribeType? =
+                SubscribeType.values().firstOrNull { it.name == keywords || it.value == keywords }
+
+            fun findNotNull(keywords: String): SubscribeType =
+                find(keywords) ?: throw ValorantPluginException("无效的订阅类型")
+
+            fun all() = values().toMutableList()
 
         }
 
 
     }
 
-
-    @Serializable
-    data class SubscribeData(
-        val contactEnum: ContactEnum,
-        val subscribeTypeList: MutableList<SubscribeType> = mutableListOf()
-    ) {
-
-        fun subscribeAll(): SubscribeData = apply { subscribeTypeList.addAll(SubscribeType.values()) }
-
-        fun subscribe(type: SubscribeType): SubscribeData = apply { subscribeTypeList.add(type) }
-
-        fun subscribe(value: String): SubscribeData = apply { subscribeTypeList.add(SubscribeType.findByValue(value)) }
-
-    }
 
     suspend inline fun <reified T> synchronous(crossinline block: suspend UserCache.() -> T): T {
         return try {
@@ -96,62 +105,63 @@ object UserCacheRepository : AutoFlushStorage<MutableMap<Long, UserCache>>(
     override suspend fun load(): MutableMap<Long, UserCache>? = try {
         super.load()
     } catch (e: Exception) {
-        null
+        OldUserCacheDataStructureAdapter().adapt()
     }
 
     init {
         registry()
     }
 
-    operator fun get(qq: Long): UserCache = data.getOrDefault(qq, UserCache().apply {
-        subscribePushLocates.takeIf { it.isEmpty() }?.put(qq, UserCache.SubscribeData(UserCache.ContactEnum.USER).subscribeAll())
-    })
+    operator fun get(qq: Long): UserCache = data.getOrPut(qq) {
+        UserCache().apply {
+            subscribes[qq] = UserCache.SubscribeType.all()
+        }
+    }
 
     fun getAllUserCache(): Map<Long, UserCache> = data
 
 }
 
+// 现在是v0.8.0 需要写一个旧的 v0.7.0的 userCache数据结构适配器 completed
 
-//@Serializable
-//data class OldUserCache(
-//    val riotClientData: RiotClientData = RiotClientData(),
-//    var isRiotAccountLogin: Boolean = false,
-//    var subscribeDailyStore: Boolean = false,
-//    var customBackgroundFile: File? = null,
-//    var dailyStorePushLocations: MutableMap<Long, Boolean> = mutableMapOf()
-//)
-//
-//class OldUserCacheDataStructureAdapter :
-//    JsonStorage<MutableMap<Long, OldUserCache>>("user-cache", StoragePathEnum.DATA_PATH, serializer()) {
-//
-//
-//    suspend fun adapt(): MutableMap<Long, UserCache>? {
-//        fun convertDailyStorePushLocates(map: MutableMap<Long, Boolean>): MutableMap<Long, UserCache.ContactEnum> =
-//            map.mapValues {
-//                var isGroup = false
-//                for (bot in getOnlineBots()) {
-//                    if (bot.getGroup(it.key) != null) {
-//                        isGroup = true
-//                        break
-//                    }
-//                }
-//                return@mapValues if (isGroup) {
-//                    UserCache.ContactEnum.GROUP
-//                } else {
-//                    UserCache.ContactEnum.USER
-//                }
-//            }.toMutableMap()
-//
-//        return load()?.mapValues {
-//            UserCache(
-//                it.value.riotClientData,
-//                it.value.isRiotAccountLogin,
-//                it.value.subscribeDailyStore,
-//                customBackgroundFile = it.value.customBackgroundFile,
-//                subscribePushLocates = convertDailyStorePushLocates(it.value.dailyStorePushLocations)
-//            )
-//        }?.toMutableMap()
-//
-//    }
-//
-//}
+@Serializable
+data class OldUserCache(
+    val riotClientData: RiotClientData = RiotClientData(),
+    var isRiotAccountLogin: Boolean = false,
+    var subscribeDailyStore: Boolean = false,
+    var customBackgroundFile: File? = null,
+    var dailyStorePushLocates: MutableMap<Long, ContactEnum> = mutableMapOf(),
+) {
+
+    @Transient
+    val lock = Mutex()
+
+    @Transient
+    val logicController: LogicController = LogicController()
+
+    @Serializable
+    enum class ContactEnum {
+        USER,
+        GROUP
+    }
+
+}
+
+class OldUserCacheDataStructureAdapter :
+    JsonStorage<MutableMap<Long, OldUserCache>>("user-cache", StoragePathEnum.DATA_PATH, serializer()) {
+
+    suspend fun adapt(): MutableMap<Long, UserCache>? {
+        return load()?.mapValues {
+            UserCache(
+                it.value.riotClientData,
+                it.value.isRiotAccountLogin,
+                0,
+                it.value.customBackgroundFile,
+                it.value.dailyStorePushLocates.mapValues { mutableListOf(UserCache.SubscribeType.DAILY_STORE) }
+                    .toMutableMap()
+            )
+        }?.toMutableMap()
+
+    }
+
+}

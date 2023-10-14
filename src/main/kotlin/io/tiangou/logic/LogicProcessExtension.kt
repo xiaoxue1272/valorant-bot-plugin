@@ -1,6 +1,6 @@
 package io.tiangou.logic
 
-import io.tiangou.Global
+import io.tiangou.config.PluginConfig
 import net.mamoe.mirai.event.events.MessageEvent
 
 internal val default_logic_list: List<Pair<String, List<LogicProcessor<MessageEvent>>>> by lazy {
@@ -12,19 +12,14 @@ internal val default_logic_list: List<Pair<String, List<LogicProcessor<MessageEv
             CheckRiotStatusAndSettingProcessor,
             QueryPlayerDailyStoreProcessor
         ),
-        "更新每日商店推送任务状态" to listOf(
-            CheckRiotStatusAndSettingProcessor,
-            CheckIsBotFriendProcessor,
-            SubscribeTaskDailyStoreProcessor
-        ),
         "自定义商店背景图" to listOf(UploadCustomBackgroundProcessor),
         "查询配件商店" to listOf(CheckRiotStatusAndSettingProcessor, QueryPlayerAccessoryStoreProcessor),
-        "添加群到每日商店推送地点" to listOf(
+        "群推送设置" to listOf(
             CheckRiotStatusAndSettingProcessor,
             CheckIsBotFriendProcessor,
             AddLocateToDailyStorePushLocatesProcessor
         ),
-        "设置当前地点为每日商店推送地点" to listOf(
+        "当前聊天推送设置" to listOf(
             CheckRiotStatusAndSettingProcessor,
             CheckIsBotFriendProcessor,
             AddCurrentLocateToDailyStorePushLocatesProcessor
@@ -35,7 +30,7 @@ internal val default_logic_list: List<Pair<String, List<LogicProcessor<MessageEv
 internal val default_help_list: String by lazy {
     "帮助列表" +
             default_logic_list.mapIndexed { index, it -> "${index + 1}.${it.first}" }.joinToString("\n") +
-            "退出指令请发送: ${Global.eventConfig.exitLogicCommand}"
+            "退出指令请发送: ${PluginConfig.eventConfig.exitLogicCommand}"
 }
 
 

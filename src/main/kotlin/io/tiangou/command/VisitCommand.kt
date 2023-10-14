@@ -1,6 +1,9 @@
 package io.tiangou.command
 
-import io.tiangou.*
+import io.tiangou.ValorantBotPlugin
+import io.tiangou.checkPermission
+import io.tiangou.config.VisitConfig
+import io.tiangou.reply
 import net.mamoe.mirai.console.command.CommandContext
 import net.mamoe.mirai.console.command.CompositeCommand
 
@@ -59,8 +62,8 @@ object VisitCommand : CompositeCommand(
             return
         }
         VisitConfig.controlType = when (VisitConfig.controlType) {
-            VisitControlEnum.WHITE_LIST -> VisitControlEnum.BLACK_LIST
-            VisitControlEnum.BLACK_LIST -> VisitControlEnum.WHITE_LIST
+            VisitConfig.VisitControlEnum.WHITE_LIST -> VisitConfig.VisitControlEnum.BLACK_LIST
+            VisitConfig.VisitControlEnum.BLACK_LIST -> VisitConfig.VisitControlEnum.WHITE_LIST
         }
         if (needClean) {
             VisitConfig.onGroups.clear()

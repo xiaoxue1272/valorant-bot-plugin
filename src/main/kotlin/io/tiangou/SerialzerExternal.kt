@@ -8,7 +8,9 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import java.io.File
 import java.nio.file.Path
+import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
@@ -93,5 +95,18 @@ class TimeZoneSerializer : KSerializer<TimeZone> {
 
     override fun serialize(encoder: Encoder, value: TimeZone) {
         encoder.encodeString(value.toZoneId().id)
+    }
+}
+
+class LocalDateTimeSerializer : KSerializer<LocalDateTime> {
+
+    override fun deserialize(decoder: Decoder): LocalDateTime {
+        return LocalDateTime.ofEpochSecond(decoder.decodeLong(), 0, ZoneOffset.UTC)
+    }
+
+    override val descriptor: SerialDescriptor = Long.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: LocalDateTime) {
+        encoder.encodeLong(value.toEpochSecond(ZoneOffset.UTC))
     }
 }

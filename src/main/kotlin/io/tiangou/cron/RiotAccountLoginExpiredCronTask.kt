@@ -1,5 +1,6 @@
 package io.tiangou.cron
 
+import io.tiangou.config.PluginConfig
 import io.tiangou.getOnlineBots
 import io.tiangou.getUser
 import io.tiangou.reply
@@ -8,26 +9,32 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 class RiotAccountLoginExpiredCronTask(
-    override var cron: String,
     override var isEnable: Boolean,
 ) : CronTask() {
+
+    override var cron: String = "0 0 12 * * ? *"
+        @Suppress("unused") set(value) = throw IllegalArgumentException("此任务cron表达式不允许修改")
 
     override val description: String = "Riot账号登录过期处理"
 
     override suspend fun execute() {
+        val onlineBots = getOnlineBots()
         UserCacheRepository.getAllUserCache()
-            .filter { !it.value.isRiotAccountLogin }
-            .forEach { entry ->
-                entry.value.synchronous {
-                    riotClientData.clean()
-                    getOnlineBots()
-                        .forEach {
-                            it.getUser(entry.key)
-                                ?.apply {
-                                    reply("当前Riot登录已过期,请重新登录,若不希望收到此提示,请通过指令来清除所有用户信息")
-                                    return@synchronous
-                                }
+            .filterValues { !it.isRiotAccountLogin }
+            .forEach { (userQQ, userCache) ->
+                userCache.synchronous {
+                    logoutDay++
+                    if (logoutDay > PluginConfig.logoutRiotAccountCleanDay - 1) {
+                        val user = onlineBots.firstNotNullOfOrNull { it.getUser(userQQ) }
+                        if (logoutDay == PluginConfig.logoutRiotAccountCleanDay) {
+                            riotClientData.clean()
+                            user?.reply("当前Riot登录过期已达7天,请重新登录,若超过30天则会清理所有账号信息,包括自定义背景")
                         }
+                        if (logoutDay == PluginConfig.logoutUserCacheCleanDay) {
+                            UserCacheRepository
+                            user?.reply("当前Riot登录过期已达30天,已清理所有数据")
+                        }
+                    }
                 }
             }
     }

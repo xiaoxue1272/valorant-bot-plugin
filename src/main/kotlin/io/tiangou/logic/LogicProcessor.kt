@@ -5,11 +5,12 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.tiangou.*
 import io.tiangou.api.RiotApi
-import io.tiangou.api.StoreApiHelper
+import io.tiangou.api.RiotApiHelper
 import io.tiangou.api.data.AuthCookiesRequest
 import io.tiangou.api.data.AuthRequest
 import io.tiangou.api.data.AuthResponse
 import io.tiangou.api.data.MultiFactorAuthRequest
+import io.tiangou.delay.UserImageCacheCleanTask
 import io.tiangou.other.http.actions
 import io.tiangou.other.http.client
 import io.tiangou.other.image.ImageGenerator
@@ -19,14 +20,12 @@ import kotlinx.serialization.Serializable
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.contact.Group
 import net.mamoe.mirai.contact.file.AbsoluteFileFolder.Companion.extension
-import net.mamoe.mirai.containsFriend
 import net.mamoe.mirai.containsGroup
 import net.mamoe.mirai.event.events.MessageEvent
-import net.mamoe.mirai.message.data.FileMessage
-import net.mamoe.mirai.message.data.Image
+import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.message.data.Image.Key.queryUrl
-import net.mamoe.mirai.message.data.ImageType
-import net.mamoe.mirai.message.data.firstIsInstanceOrNull
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 @Serializable
 sealed interface LogicProcessor<T : MessageEvent> {
@@ -96,9 +95,10 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
 
     private suspend fun MessageEvent.afterLogin(userCache: UserCache, authUrl: String) {
         userCache.apply {
-            StoreApiHelper.clean(this)
+//            RiotApiHelper.clean(this)
 //            ImageGenerator.clean(this)
-            generateImages.clear()
+            logoutDay = 0
+            clearCacheImages()
             riotClientData.flushAccessToken(authUrl)
             riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
             riotClientData.puuid = RiotApi.PlayerInfo.execute().sub
@@ -121,8 +121,8 @@ object ChangeLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
                     riotClientData.region = it.region
                     currentEvent reply "设置成功"
 //                    ImageGenerator.clean(userCache)
-                    generateImages.clear()
-                    StoreApiHelper.clean(userCache)
+                    clearCacheImages()
+//                    RiotApiHelper.clean(userCache)
                 }
                 return
             }
@@ -162,24 +162,32 @@ object QueryPlayerDailyStoreProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         reply("正在查询每日商店,请稍等")
-        val skinsPanelLayoutImage = ImageGenerator.getCacheOrGenerate(
-            userCache,
-            GenerateImageType.SKINS_PANEL_LAYOUT,
-        ) { storeImage(userCache, it) }
+        val skinsPanelLayoutImage = userCache.getOrCacheImage(GenerateImageType.SKINS_PANEL_LAYOUT) {
+            val storeFront = RiotApiHelper.queryStoreFrontApi(userCache)
+            UserImageCacheCleanTask(
+                storeFront.skinsPanelLayout.singleItemOffersRemainingDurationInSeconds.toDuration(DurationUnit.SECONDS),
+                it,
+                sender.id
+            ).enable()
+            ImageGenerator.storeImage(userCache, it, storeFront)
+        }.getOrFail()
         replyImage(skinsPanelLayoutImage)
+
     }
 }
 
-@Serializable
-object SubscribeTaskDailyStoreProcessor : LogicProcessor<MessageEvent> {
-    override suspend fun MessageEvent.process(userCache: UserCache) {
-        userCache.synchronous {
-            subscribeDailyStore = !subscribeDailyStore
-            val status: String = if (subscribeDailyStore) "开启" else "关闭"
-            reply("已将你的每日商店推送状态设置为:$status")
-        }
-    }
-}
+//@Serializable
+//object SubscribeTaskDailyStoreProcessor : LogicProcessor<MessageEvent> {
+//    override suspend fun MessageEvent.process(userCache: UserCache) {
+//        userCache.synchronous {
+//            val dailyStore = UserCache.SubscribeType.DAILY_STORE
+//            val status: String =
+//                if (subscribeTypeList.remove(dailyStore)) "关闭"
+//                else subscribeTypeList.add(dailyStore).let { "开启" }
+//            reply("已将你的每日商店推送状态设置为:$status")
+//        }
+//    }
+//}
 
 @Serializable
 object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
@@ -191,7 +199,7 @@ object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
                 userCache.synchronous {
                     customBackgroundFile?.delete()
                     customBackgroundFile = null
-                    generateImages.clear()
+                    clearCacheImages()
                 }
                 reply("已将背景图片恢复至默认")
             } else {
@@ -203,7 +211,7 @@ object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
                 userCache.synchronous {
                     customBackgroundFile = ValorantBotPlugin.dataFolder.resolve("${sender.id}_background.bkg")
                         .apply { writeBytes(client.get(downloadUrl).readBytes()) }
-                    generateImages.clear()
+                    clearCacheImages()
                 }
                 reply("上传成功")
             }
@@ -217,10 +225,15 @@ object QueryPlayerAccessoryStoreProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         reply("正在查询配件商店,请稍等")
-        val accessoryStoreImage = ImageGenerator.getCacheOrGenerate(
-            userCache,
-            GenerateImageType.ACCESSORY_STORE,
-        ) { storeImage(userCache, it) }
+        val accessoryStoreImage = userCache.getOrCacheImage(GenerateImageType.ACCESSORY_STORE) {
+            val storeFront = RiotApiHelper.queryStoreFrontApi(userCache)
+            UserImageCacheCleanTask(
+                storeFront.skinsPanelLayout.singleItemOffersRemainingDurationInSeconds.toDuration(DurationUnit.SECONDS),
+                it,
+                sender.id
+            ).enable()
+            ImageGenerator.storeImage(userCache, it, storeFront)
+        }.getOrFail()
         replyImage(accessoryStoreImage)
     }
 }
@@ -229,30 +242,52 @@ object QueryPlayerAccessoryStoreProcessor : LogicProcessor<MessageEvent> {
 object AddLocateToDailyStorePushLocatesProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
-        reply("请输入群号")
-        nextMessageEvent().apply {
-            val groupId = "\\d+".toRegex().let {
-                val text = toText()
-                if (!it.matches(text)) {
-                    reply("输入不正确,无法解析为正确的推送地点")
-                    return
-                }
-                text.toLong()
+        reply(
+            MessageChainBuilder()
+                .append("请输入要添加的推送事件\n")
+                .append(
+                    UserCache.SubscribeType
+                        .values().joinToString("\n") { "${it.value} : ${it.name}" }
+                )
+                .append("\n请输入正确的指令或汉字")
+                .build()
+        )
+        var currentMessageEvent = nextMessageEvent()
+        val subscribeType = UserCache.SubscribeType.findNotNull(currentMessageEvent.toText())
+        currentMessageEvent.reply("请输入群号")
+        currentMessageEvent = nextMessageEvent()
+        val groupId = "\\d+".toRegex().let {
+            val text = toText()
+            if (!it.matches(text)) {
+                currentMessageEvent.reply("输入不正确,无法解析为正确的推送地点")
+                return
             }
-            if (!isVisitAllow(groupId)) return
-            val isGroupNotExists = userCache.subscribePushLocates[groupId] == null
-            if (isGroupNotExists) {
-                if (bot.containsGroup(groupId)) {
-                    userCache.subscribePushLocates[groupId] = UserCache.ContactEnum.GROUP
-                } else {
-                    reply("未找到群[$groupId],请检查Bot是否在指定的群中")
-                    return
-                }
-            } else {
-                userCache.subscribePushLocates.remove(groupId)
-            }
-            reply("已将指定群[${groupId}]的推送状态设置为:${if (isGroupNotExists) "启用" else "停用"}")
+            text.toLong()
         }
+        if (!isVisitAllow(groupId)) return
+        val isGroupNotExists = userCache.subscribes[groupId]?.contains(subscribeType) ?: false
+        if (isGroupNotExists) {
+            if (bot.containsGroup(groupId)) {
+                currentMessageEvent.reply(
+                    MessageChainBuilder()
+                        .append("请输入要添加的推送事件\n")
+                        .append(
+                            UserCache.SubscribeType
+                                .values().joinToString("\n") { "${it.value} : ${it.name}" }
+                        )
+                        .append("\n请输入正确的指令或汉字")
+                        .build()
+                )
+                currentMessageEvent = nextMessageEvent()
+                userCache.subscribes.getOrPut(groupId) { mutableListOf() }.add(subscribeType)
+            } else {
+                reply("未找到群[$groupId],当前机器人可能不在指定的群中")
+                return
+            }
+        } else {
+            userCache.subscribes.getOrPut(groupId) { mutableListOf() }.remove(subscribeType)
+        }
+        reply("已将指定群[${groupId}]的[${subscribeType.name}]的推送状态设置为:${if (isGroupNotExists) "启用" else "停用"}")
     }
 }
 
@@ -260,19 +295,30 @@ object AddLocateToDailyStorePushLocatesProcessor : LogicProcessor<MessageEvent> 
 object AddCurrentLocateToDailyStorePushLocatesProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
-        val isCurrentLocateNotExists = userCache.subscribePushLocates[subject.id] == null
+        reply(
+            MessageChainBuilder()
+                .append("请输入要添加的推送事件\n")
+                .append(
+                    UserCache.SubscribeType
+                        .values().joinToString("\n") { "${it.value} : ${it.name}" }
+                )
+                .append("\n请输入正确的指令或汉字")
+                .build()
+        )
+        val subscribeType = UserCache.SubscribeType.findNotNull(nextMessageEvent().toText())
+        val isCurrentLocateNotExists = userCache.subscribes[subject.id]?.contains(subscribeType) ?: false
         if (isCurrentLocateNotExists && isVisitAllow()) {
             if (bot.containsGroup(subject.id)) {
-                userCache.subscribePushLocates[subject.id] = UserCache.ContactEnum.GROUP
-            } else if (bot.containsFriend(subject.id) || bot.getStranger(subject.id) != null) {
-                userCache.subscribePushLocates[subject.id] = UserCache.ContactEnum.USER
+                userCache.subscribes.getOrPut(subject.id) { mutableListOf() }.add(subscribeType)
+            } else if (bot.getUser(subject.id) != null) {
+                userCache.subscribes.getOrPut(subject.id) { mutableListOf() }.add(subscribeType)
             } else {
-                reply("暂不支持当前地点")
+                reply("暂不支持设置当前地点")
                 return
             }
         } else {
-            userCache.subscribePushLocates.remove(subject.id)
+            userCache.subscribes.remove(subject.id)
         }
-        reply("已将当前地点[${subject.id}]的推送状态设置为:${if (isCurrentLocateNotExists) "启用" else "停用"}")
+        reply("已将当前地点[${subject.id}]的[${subscribeType.name}]的推送状态设置为:${if (isCurrentLocateNotExists) "启用" else "停用"}")
     }
 }

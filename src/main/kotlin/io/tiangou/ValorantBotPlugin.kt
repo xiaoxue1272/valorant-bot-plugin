@@ -2,7 +2,8 @@ package io.tiangou
 
 import io.tiangou.command.CronTaskCommand
 import io.tiangou.command.VisitCommand
-import io.tiangou.cron.CachesCleanCronTask
+import io.tiangou.config.PluginConfig
+import io.tiangou.config.VisitConfig
 import io.tiangou.cron.CronTaskManager
 import io.tiangou.repository.persistnce.PersistenceDataInitiator
 import kotlinx.coroutines.runBlocking
@@ -25,15 +26,14 @@ object ValorantBotPlugin : KotlinPlugin(
 ) {
 
     override fun onEnable() {
-        Global.reload()
+        PluginConfig.reload()
         VisitConfig.reload()
         CronTaskManager.apply { reload(); start() }
-        CachesCleanCronTask.enable()
         runBlocking {
-            if (Global.databaseConfig.isInitOnEnable) {
+            if (PluginConfig.databaseConfig.isInitOnEnable) {
                 PersistenceDataInitiator.init()
             }
-            GuiLibraryLoader.loadApi(Global.drawImageConfig.api)
+            GuiLibraryLoader.loadApi(PluginConfig.drawImageConfig.api)
         }
         CommandManager.registerCommand(CronTaskCommand, false)
         CommandManager.registerCommand(VisitCommand, false)

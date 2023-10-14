@@ -1,6 +1,6 @@
 package io.tiangou.delay
 
-import io.tiangou.repository.UserCacheRepository
+import net.mamoe.mirai.console.util.safeCast
 import kotlin.time.Duration
 
 
@@ -21,16 +21,11 @@ import kotlin.time.Duration
  * @see DelayTask
  * @since v0.8.0
  */
-abstract class UserCacheImageCleanDelayTask(delay: Duration): DelayTask(delay) {
+abstract class SingleDelayTask<T : Comparable<T>>(delay: Duration) : DelayTask(delay) {
 
-    override val description: String = "用户生成缓存图片清理任务"
-
-    override suspend fun execute() {
-        UserCacheRepository.getAllUserCache()
-            .forEach {
-                it.value.synchronous {
-                    generateImages.clear()
-                }
-            }
+    abstract val condition: T
+    override fun enable() {
+        if (find { it.safeCast<SingleDelayTask<T>>()?.condition?.compareTo(this.condition) == 0 } == null) super.enable()
     }
+
 }

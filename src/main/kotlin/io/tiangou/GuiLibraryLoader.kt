@@ -2,12 +2,11 @@ package io.tiangou
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.tiangou.DrawImageApiEnum.AWT
-import io.tiangou.DrawImageApiEnum.SKIKO
+import io.tiangou.config.PluginConfig
 import io.tiangou.other.http.client
 import io.tiangou.other.http.isRedirect
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import net.mamoe.mirai.utils.MiraiLogger
 import org.jetbrains.skiko.*
 import java.io.File
@@ -23,19 +22,21 @@ abstract class GuiLibraryLoader {
     abstract val libDescription: String
 
     protected val libPath
-        get() = Global.drawImageConfig.libDictionary
+        get() = PluginConfig.drawImageConfig.libDictionary
 
-    suspend fun loadLibraries(block: Path.() -> Unit) {
+    suspend fun loadLibraries(block: suspend Path.() -> Unit) {
         log.info("loading $libDescription library...")
         block(getLibraryPath())
         log.info("$libDescription library loaded")
     }
 
-    fun Path.create(block: suspend Path.() -> Unit): Path {
-        if (!exists()) {
-            if (!parent.exists()) parent.createDirectories()
-            createFile()
-            runBlocking { block() }
+    suspend fun Path.create(block: suspend Path.() -> Unit): Path {
+        withContext(Dispatchers.IO) {
+            if (!exists()) {
+                if (!parent.exists()) parent.createDirectories()
+                createFile()
+                block()
+            }
         }
         return this
     }
@@ -45,14 +46,14 @@ abstract class GuiLibraryLoader {
 
     companion object {
 
-        suspend fun loadApi(apiEnum: DrawImageApiEnum) {
+        suspend fun loadApi(apiEnum: PluginConfig.DrawImageConfig.DrawImageApiEnum) {
             when (apiEnum) {
-                SKIKO -> SkikoLibraryLoader.loadLibraries {
+                PluginConfig.DrawImageConfig.DrawImageApiEnum.SKIKO -> SkikoLibraryLoader.loadLibraries {
                     System.setProperty("skiko.library.path", absolutePathString())
                     Library.load()
                 }
 
-                AWT -> {}
+                PluginConfig.DrawImageConfig.DrawImageApiEnum.AWT -> {}
             }
         }
 
@@ -67,25 +68,23 @@ object SkikoLibraryLoader : GuiLibraryLoader() {
 
     private val target = "skiko-awt-runtime-$hostId"
 
-    private val downloadUrl = "https://maven.pkg.jetbrains.space/public/p/compose/dev" +
-            baseDirs.joinToString("/", prefix = "/", postfix = "/") +
-            "$target/" +
-            "${Version.skiko}/" +
-            "$target-${Version.skiko}.jar"
+    private val downloadUrl = """
+        https://maven.pkg.jetbrains.space/public/p/compose/dev
+        /${baseDirs.joinToString("/")}
+        /$target/${Version.skiko}/$target-${Version.skiko}.jar
+    """.trim()
 
     override val libDescription: String = "skiko"
 
     override suspend fun getLibraryPath(): Path {
-        val path = libPath.resolve(baseDirs.joinToString(File.separator))
+        val libraryPath = libPath.resolve(baseDirs.joinToString(File.separator))
             .resolve(target)
             .resolve(Version.skiko)
-
         val nativeLibName = "skiko-$hostId"
+        fun File.toZipFile() = ZipFile(this)
+        fun ZipFile.unzipTo(entry: ZipEntry, path: Path) = getInputStream(entry).use { path.writeBytes(it.readBytes()) }
 
-        fun ZipFile.unzipTo(entry: ZipEntry, path: Path) =
-            getInputStream(entry).use { path.writeBytes(it.readBytes()) }
-
-        val zipPath = path.resolve("$target-${Version.skiko}.jar")
+        val zipFile = libraryPath.resolve("$target-${Version.skiko}.jar")
             .create {
                 log.info("$libDescription is not exists, starting download...")
                 log.info("$libDescription download path: $this")
@@ -94,29 +93,23 @@ object SkikoLibraryLoader : GuiLibraryLoader() {
                 }.readBytes()
                 writeBytes(bytes)
                 log.info("$libDescription downloaded")
-            }
+            }.toFile().toZipFile()
 
-        path.resolve(System.mapLibraryName(nativeLibName))
+        libraryPath.resolve(System.mapLibraryName(nativeLibName))
             .create {
-                runBlocking(Dispatchers.IO) {
-                    val zip = ZipFile(zipPath.toFile())
-                    zip.unzipTo(zip.getEntry(System.mapLibraryName("skiko-$hostId")), this@create)
-                    log.info("$libDescription: $nativeLibName unzipped")
-                }
+                zipFile.unzipTo(zipFile.getEntry(System.mapLibraryName("skiko-$hostId")), this@create)
+                log.info("$libDescription: $nativeLibName unzipped")
             }
 
         if (hostOs == OS.Windows) {
-            path.resolve("icudtl.dat")
+            libraryPath.resolve("icudtl.dat")
                 .create {
-                    runBlocking(Dispatchers.IO) {
-                        val zip = ZipFile(zipPath.toFile())
-                        zip.unzipTo(zip.getEntry("icudtl.dat"), this@create)
-                        log.info("$libDescription: icudtl.dat unzipped")
-                    }
+                    zipFile.unzipTo(zipFile.getEntry("icudtl.dat"), this@create)
+                    log.info("$libDescription: icudtl.dat unzipped")
                 }
         }
 
-        return path
+        return libraryPath
 
     }
 

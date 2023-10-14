@@ -2,8 +2,9 @@ package io.tiangou.other.image
 
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.tiangou.*
-import io.tiangou.api.StoreApiHelper
+import io.tiangou.GenerateImageType
+import io.tiangou.api.data.StoreFrontResponse
+import io.tiangou.config.PluginConfig
 import io.tiangou.other.http.client
 import io.tiangou.repository.UserCache
 import kotlinx.coroutines.Dispatchers
@@ -12,30 +13,20 @@ import kotlinx.coroutines.runInterruptible
 
 object ImageGenerator {
 
-    private val wp: Int = 9
+    private val storeWP: Int = PluginConfig.storeImageWidthHeightProportion.first
 
-    private val hp: Int = 16
+    private val storeHP: Int = PluginConfig.storeImageWidthHeightProportion.second
 
-    suspend fun getCacheOrGenerate(
-        userCache: UserCache,
-        type: GenerateImageType,
-        block: suspend ImageGenerator.(GenerateImageType) -> ByteArray
-    ): ByteArray = userCache.synchronous {
-        val cache = generateImages.getOrDefault(type, CacheFactory.create())
-        cache.get()?.takeIf { it.isNotEmpty() } ?: block(this@ImageGenerator, type).apply { cache.put(this) }
+    private fun createImageContainer(): ImageContainer = when (PluginConfig.drawImageConfig.api) {
+        PluginConfig.DrawImageConfig.DrawImageApiEnum.SKIKO -> SkikoImageContainer()
+        PluginConfig.DrawImageConfig.DrawImageApiEnum.AWT -> AwtImageContainer()
     }
 
-    private fun createImageContainer(): ImageContainer = when (Global.drawImageConfig.api) {
-        DrawImageApiEnum.SKIKO -> SkikoImageContainer()
-        DrawImageApiEnum.AWT -> AwtImageContainer()
-    }
-
-    suspend fun storeImage(userCache: UserCache, type: GenerateImageType): ByteArray {
-        val storeFront = StoreApiHelper.queryStoreFront(userCache)
+    suspend fun storeImage(userCache: UserCache, type: GenerateImageType, storeFront: StoreFrontResponse): ByteArray {
         return createImageContainer().let {
             val backgroundBytes = userCache.customBackgroundFile?.readBytes()
-                ?: Global.drawImageConfig.background.reference.getResourceBytes()!!
-            it.initBackground(backgroundBytes, wp, hp)
+                ?: PluginConfig.drawImageConfig.background.reference.getResourceBytes()!!
+            it.initBackground(backgroundBytes, storeWP, storeHP)
             val width = (it.width - it.width * 0.4f).toInt()
             val height = width / 2
             val containers = when (type) {

@@ -1,6 +1,6 @@
 package io.tiangou.other.image
 
-import io.tiangou.Global
+import io.tiangou.config.PluginConfig
 
 interface ImageContainer {
 
@@ -14,7 +14,7 @@ interface ImageContainer {
         bytes: ByteArray,
         wp: Int,
         hp: Int,
-        alpha: Float = Global.drawImageConfig.background.alpha.toFloat()
+        alpha: Float = PluginConfig.drawImageConfig.background.alpha.toFloat()
     ): ImageContainer
 
     fun paddingBackgroundColor(rgba: String, alpha: Float? = null): ImageContainer

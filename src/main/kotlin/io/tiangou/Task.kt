@@ -15,14 +15,14 @@ sealed interface Task {
 
 }
 
-abstract class AbstractTask: Task, CoroutineScope {
+abstract class AbstractTask : Task, CoroutineScope {
 
     protected val log: MiraiLogger = MiraiLogger.Factory.create(Task::class)
 
     var job: Job? = null
 
     override val coroutineContext: CoroutineContext =
-        Global.coroutineScope.coroutineContext + CoroutineName("GlobalTaskContext :${this::class::simpleName}")
+        PluginGlobal.coroutineScope.coroutineContext + CoroutineName("GlobalTaskContext :${this::class::simpleName}")
 
 
     suspend fun run() =

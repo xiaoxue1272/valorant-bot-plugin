@@ -1,6 +1,6 @@
 package io.tiangou.other.image
 
-import io.tiangou.Global
+import io.tiangou.config.PluginConfig
 import org.jetbrains.skia.*
 
 class SkikoImageContainer : ImageContainer {
@@ -151,11 +151,11 @@ class SkikoImageContainer : ImageContainer {
     companion object {
 
         private val customerFont: Font = Font(
-            Global.drawImageConfig.font.reference.getResourceBytes()
+            PluginConfig.drawImageConfig.font.reference.getResourceBytes()
                 ?.let { Data.makeFromBytes(it) }
                 ?.let { Typeface.makeFromData(it) }
         )
 
-        private val fontColor = Global.drawImageConfig.font.color
+        private val fontColor = PluginConfig.drawImageConfig.font.color
     }
 }

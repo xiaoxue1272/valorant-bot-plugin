@@ -5,7 +5,7 @@ plugins {
     id("net.mamoe.mirai-console") version "2.15.0"
 }
 
-group = "io.tiangou.plugins"
+group = "io.tiangou"
 version = "0.8.0-dev"
 
 val ktorVersion = "2.3.4"
@@ -13,16 +13,11 @@ val skikoVersion = "0.7.80"
 val sqliteJdbcVersion = "3.42.0.0"
 val hutoolVersion = "5.8.20"
 
-mirai {
-    jvmTarget = JavaVersion.VERSION_1_8
-    consoleVersion = "2.15.0"
-}
-
 repositories {
+    mavenLocal()
     mavenCentral()
     maven("https://maven.aliyun.com/repository/public/")
     maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
-    mavenLocal()
 }
 
 

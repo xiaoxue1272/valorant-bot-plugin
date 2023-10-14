@@ -1,6 +1,6 @@
 package io.tiangou.other.image
 
-import io.tiangou.Global
+import io.tiangou.config.PluginConfig
 import java.awt.*
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
@@ -178,7 +178,7 @@ class AwtImageContainer : ImageContainer {
     companion object {
 
         private val customerFont: Font? =
-            Global.drawImageConfig.font.reference.getResourceFile().let {
+            PluginConfig.drawImageConfig.font.reference.getResourceFile().let {
                 when (it?.extension?.uppercase()) {
                     "TTF", "OTF" -> Font.createFont(Font.TRUETYPE_FONT, it)
                     "PFB" -> Font.createFont(Font.TYPE1_FONT, it)
@@ -186,7 +186,7 @@ class AwtImageContainer : ImageContainer {
                 }
             }
 
-        private val fontColor = Global.drawImageConfig.font.color
+        private val fontColor = PluginConfig.drawImageConfig.font.color
 
     }
 }
