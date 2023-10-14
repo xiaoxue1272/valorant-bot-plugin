@@ -25,7 +25,10 @@ abstract class SingleDelayTask<T : Comparable<T>>(delay: Duration) : DelayTask(d
 
     abstract val condition: T
     override fun enable() {
-        if (find { it.safeCast<SingleDelayTask<T>>()?.condition?.compareTo(this.condition) == 0 } == null) super.enable()
+        val sameDelayTask = find {
+            it.safeCast<SingleDelayTask<T>>()?.condition?.compareTo(this.condition) == 0
+        }
+        if (sameDelayTask == null) super.enable()
     }
 
 }

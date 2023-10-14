@@ -28,6 +28,7 @@ class FileByteArrayCache : ByteArrayCache {
         value?.let {
             cacheElement.createNewFile()
             cacheElement.writeBytes(it)
+            cacheElement.deleteOnExit()
         }
     }
 

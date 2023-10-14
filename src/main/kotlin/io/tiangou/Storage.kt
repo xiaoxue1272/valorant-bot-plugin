@@ -2,6 +2,7 @@ package io.tiangou
 
 import kotlinx.coroutines.*
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.Json
 import net.mamoe.mirai.console.util.cast
 import net.mamoe.mirai.utils.MiraiLogger
 import java.io.File
@@ -85,6 +86,13 @@ class StringStorage(
     }
 }
 
+private val json = Json {
+    encodeDefaults = true
+    useAlternativeNames = false
+    isLenient = true
+    prettyPrint = true
+}
+
 open class JsonStorage<T>(
     fileName: String,
     storagePath: StoragePathEnum,
@@ -97,10 +105,10 @@ open class JsonStorage<T>(
         get() = stringStorage.storeFile
 
     override suspend fun load(): T? =
-        stringStorage.load()?.takeIf { it.isNotEmpty() }?.let { PluginGlobal.json.decodeFromString(serializer, it) }
+        stringStorage.load()?.takeIf { it.isNotEmpty() }?.let { json.decodeFromString(serializer, it) }
 
     override suspend fun store(data: T): T = data.apply {
-        stringStorage.store(PluginGlobal.json.encodeToString(serializer, data))
+        stringStorage.store(json.encodeToString(serializer, data))
     }
 
 }

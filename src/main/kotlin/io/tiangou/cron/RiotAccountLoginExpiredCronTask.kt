@@ -12,8 +12,9 @@ class RiotAccountLoginExpiredCronTask(
     override var isEnable: Boolean,
 ) : CronTask() {
 
+    @setparam:Suppress("unused", "unused_parameter")
     override var cron: String = "0 0 12 * * ? *"
-        @Suppress("unused") set(value) = throw IllegalArgumentException("此任务cron表达式不允许修改")
+         set(value) = throw IllegalArgumentException("此任务cron表达式不允许修改")
 
     override val description: String = "Riot账号登录过期处理"
 
@@ -31,7 +32,7 @@ class RiotAccountLoginExpiredCronTask(
                             user?.reply("当前Riot登录过期已达7天,请重新登录,若超过30天则会清理所有账号信息,包括自定义背景")
                         }
                         if (logoutDay == PluginConfig.logoutUserCacheCleanDay) {
-                            UserCacheRepository
+                            UserCacheRepository.remove(userQQ)
                             user?.reply("当前Riot登录过期已达30天,已清理所有数据")
                         }
                     }

@@ -70,7 +70,7 @@ class DailyStorePushCronTask(
 
     private fun UserCache.mapSubscribeDataByBots(userQQ: Long, onlineBots: List<Bot>): List<UserSubscribePushData> {
         val subscribeLocates = subscribes
-            .filterValues { it.contains(UserCache.SubscribeType.DAILY_STORE) }
+            .filterValues { it.contains(SubscribeType.DAILY_STORE) }
             .keys
             .toHashSet()
         return onlineBots.mapNotNull {

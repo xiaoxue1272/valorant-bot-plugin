@@ -239,86 +239,77 @@ object QueryPlayerAccessoryStoreProcessor : LogicProcessor<MessageEvent> {
 }
 
 @Serializable
-object AddLocateToDailyStorePushLocatesProcessor : LogicProcessor<MessageEvent> {
+object DesignateSubscribeSettingProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         reply(
             MessageChainBuilder()
                 .append("请输入要添加的推送事件\n")
                 .append(
-                    UserCache.SubscribeType
+                    SubscribeType
                         .values().joinToString("\n") { "${it.value} : ${it.name}" }
                 )
                 .append("\n请输入正确的指令或汉字")
                 .build()
         )
         var currentMessageEvent = nextMessageEvent()
-        val subscribeType = UserCache.SubscribeType.findNotNull(currentMessageEvent.toText())
-        currentMessageEvent.reply("请输入群号")
+        val subscribeType = SubscribeType.findNotNull(currentMessageEvent.toText())
+        currentMessageEvent reply "请输入群号"
         currentMessageEvent = nextMessageEvent()
         val groupId = "\\d+".toRegex().let {
-            val text = toText()
+            val text = currentMessageEvent.toText()
             if (!it.matches(text)) {
-                currentMessageEvent.reply("输入不正确,无法解析为正确的推送地点")
+                currentMessageEvent reply "输入不正确,无法解析为正确的推送地点"
                 return
             }
             text.toLong()
         }
         if (!isVisitAllow(groupId)) return
-        val isGroupNotExists = userCache.subscribes[groupId]?.contains(subscribeType) ?: false
-        if (isGroupNotExists) {
+        val isDesignateSubscribeNotExists = userCache.subscribes[groupId]?.contains(subscribeType) != true
+        if (isDesignateSubscribeNotExists) {
             if (bot.containsGroup(groupId)) {
-                currentMessageEvent.reply(
-                    MessageChainBuilder()
-                        .append("请输入要添加的推送事件\n")
-                        .append(
-                            UserCache.SubscribeType
-                                .values().joinToString("\n") { "${it.value} : ${it.name}" }
-                        )
-                        .append("\n请输入正确的指令或汉字")
-                        .build()
-                )
-                currentMessageEvent = nextMessageEvent()
                 userCache.subscribes.getOrPut(groupId) { mutableListOf() }.add(subscribeType)
             } else {
-                reply("未找到群[$groupId],当前机器人可能不在指定的群中")
+                currentMessageEvent reply "未找到群[$groupId],当前机器人可能不在指定的群中"
                 return
             }
         } else {
             userCache.subscribes.getOrPut(groupId) { mutableListOf() }.remove(subscribeType)
         }
-        reply("已将指定群[${groupId}]的[${subscribeType.name}]的推送状态设置为:${if (isGroupNotExists) "启用" else "停用"}")
+        currentMessageEvent reply "已将指定群[${groupId}]的[${subscribeType.value}]的推送状态设置为:${if (isDesignateSubscribeNotExists) "启用" else "停用"}"
     }
 }
 
 @Serializable
-object AddCurrentLocateToDailyStorePushLocatesProcessor : LogicProcessor<MessageEvent> {
+object CurrentSubscribeSettingProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
+        if (!isVisitAllow()) return
         reply(
             MessageChainBuilder()
                 .append("请输入要添加的推送事件\n")
                 .append(
-                    UserCache.SubscribeType
+                    SubscribeType
                         .values().joinToString("\n") { "${it.value} : ${it.name}" }
                 )
                 .append("\n请输入正确的指令或汉字")
                 .build()
         )
-        val subscribeType = UserCache.SubscribeType.findNotNull(nextMessageEvent().toText())
-        val isCurrentLocateNotExists = userCache.subscribes[subject.id]?.contains(subscribeType) ?: false
-        if (isCurrentLocateNotExists && isVisitAllow()) {
+        val currentMessageEvent = nextMessageEvent()
+        val subscribeType = SubscribeType.findNotNull(currentMessageEvent.toText())
+        val isCurrentSubscribeNotExists = userCache.subscribes[subject.id]?.contains(subscribeType) != true
+        if (isCurrentSubscribeNotExists) {
             if (bot.containsGroup(subject.id)) {
                 userCache.subscribes.getOrPut(subject.id) { mutableListOf() }.add(subscribeType)
             } else if (bot.getUser(subject.id) != null) {
                 userCache.subscribes.getOrPut(subject.id) { mutableListOf() }.add(subscribeType)
             } else {
-                reply("暂不支持设置当前地点")
+                currentMessageEvent reply "暂不支持设置当前地点"
                 return
             }
         } else {
             userCache.subscribes.remove(subject.id)
         }
-        reply("已将当前地点[${subject.id}]的[${subscribeType.name}]的推送状态设置为:${if (isCurrentLocateNotExists) "启用" else "停用"}")
+        currentMessageEvent reply "已将当前地点[${subject.id}]的[${subscribeType.value}]的推送状态设置为:${if (isCurrentSubscribeNotExists) "启用" else "停用"}"
     }
 }

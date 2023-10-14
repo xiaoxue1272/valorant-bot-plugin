@@ -9,13 +9,13 @@ import kotlin.coroutines.CoroutineContext
 
 sealed interface Task {
 
-    val description: String
-
     suspend fun execute()
 
 }
 
 abstract class AbstractTask : Task, CoroutineScope {
+
+    abstract val description: String
 
     protected val log: MiraiLogger = MiraiLogger.Factory.create(Task::class)
 

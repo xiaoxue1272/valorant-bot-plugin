@@ -5,8 +5,7 @@ import io.ktor.client.statement.*
 import io.tiangou.config.PluginConfig
 import io.tiangou.other.http.client
 import io.tiangou.other.http.isRedirect
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runBlocking
 import net.mamoe.mirai.utils.MiraiLogger
 import org.jetbrains.skiko.*
 import java.io.File
@@ -24,19 +23,17 @@ abstract class GuiLibraryLoader {
     protected val libPath
         get() = PluginConfig.drawImageConfig.libDictionary
 
-    suspend fun loadLibraries(block: suspend Path.() -> Unit) {
+    suspend fun loadLibraries(block: Path.() -> Unit) {
         log.info("loading $libDescription library...")
         block(getLibraryPath())
         log.info("$libDescription library loaded")
     }
 
-    suspend fun Path.create(block: suspend Path.() -> Unit): Path {
-        withContext(Dispatchers.IO) {
-            if (!exists()) {
-                if (!parent.exists()) parent.createDirectories()
-                createFile()
-                block()
-            }
+    fun Path.create(block: suspend Path.() -> Unit): Path {
+        if (!exists()) {
+            if (!parent.exists()) parent.createDirectories()
+            createFile()
+            runBlocking { block() }
         }
         return this
     }
@@ -68,11 +65,9 @@ object SkikoLibraryLoader : GuiLibraryLoader() {
 
     private val target = "skiko-awt-runtime-$hostId"
 
-    private val downloadUrl = """
-        https://maven.pkg.jetbrains.space/public/p/compose/dev
-        /${baseDirs.joinToString("/")}
-        /$target/${Version.skiko}/$target-${Version.skiko}.jar
-    """.trim()
+    private val downloadUrl = "https://maven.pkg.jetbrains.space/public/p/compose/dev" +
+            "/${baseDirs.joinToString("/")}" +
+            "/$target/${Version.skiko}/$target-${Version.skiko}.jar"
 
     override val libDescription: String = "skiko"
 
@@ -84,12 +79,13 @@ object SkikoLibraryLoader : GuiLibraryLoader() {
         fun File.toZipFile() = ZipFile(this)
         fun ZipFile.unzipTo(entry: ZipEntry, path: Path) = getInputStream(entry).use { path.writeBytes(it.readBytes()) }
 
+
         val zipFile = libraryPath.resolve("$target-${Version.skiko}.jar")
             .create {
                 log.info("$libDescription is not exists, starting download...")
                 log.info("$libDescription download path: $this")
-                val bytes = client.get(downloadUrl).let {
-                    it.takeIf { it.status.isRedirect() } ?: client.get(it.headers["location"]!!)
+                val bytes = client.get(downloadUrl).run {
+                    takeIf { !it.status.isRedirect() } ?: client.get(headers["location"]!!)
                 }.readBytes()
                 writeBytes(bytes)
                 log.info("$libDescription downloaded")

@@ -7,8 +7,8 @@ import io.tiangou.command.CronTaskCommand
 import io.tiangou.config.PluginConfig
 import io.tiangou.config.VisitConfig
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
-import kotlinx.serialization.json.Json
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.console.command.CommandContext
 import net.mamoe.mirai.console.command.CommandSender
@@ -191,14 +191,6 @@ suspend fun CommandContext.checkPermission(): Boolean {
 
 object PluginGlobal {
 
-    val json = Json {
-        encodeDefaults = true
-        useAlternativeNames = false
-        isLenient = true
-        prettyPrint = true
-        ignoreUnknownKeys = true
-    }
-
     val coroutineScope: CoroutineScope
         get() = ValorantBotPlugin
 
@@ -227,5 +219,42 @@ enum class GenerateImageType(val value: String) {
 
     // 每周三早上8点刷新
     ACCESSORY_STORE("配件商店"),
+
+}
+
+/**
+ * 订阅定时任务类型
+ */
+@Serializable
+enum class SubscribeType(
+    val value: String
+) {
+    DAILY_STORE("每日商店"),
+    WEEKLY_ACCESSORY_STORE("每周配件商店"),
+    DAILY_MATCH_SUMMARY_DATA("每日比赛数据统计");
+
+
+    companion object {
+
+        fun findByValue(value: String): SubscribeType? = SubscribeType.values().firstOrNull { it.value == value }
+
+        fun findByValueNotNull(value: String): SubscribeType =
+            findByValue(value) ?: throw ValorantPluginException("无效的订阅类型")
+
+        fun findByName(name: String): SubscribeType? = SubscribeType.values().firstOrNull { it.name == name }
+
+        fun findByNameNotNull(name: String): SubscribeType =
+            findByName(name) ?: throw ValorantPluginException("无效的订阅类型")
+
+        fun find(keywords: String): SubscribeType? =
+            SubscribeType.values().firstOrNull { it.name == keywords || it.value == keywords }
+
+        fun findNotNull(keywords: String): SubscribeType =
+            find(keywords) ?: throw ValorantPluginException("无效的订阅类型")
+
+        fun all() = values().toMutableList()
+
+    }
+
 
 }

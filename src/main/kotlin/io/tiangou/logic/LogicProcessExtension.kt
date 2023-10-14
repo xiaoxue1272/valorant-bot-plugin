@@ -17,20 +17,20 @@ internal val default_logic_list: List<Pair<String, List<LogicProcessor<MessageEv
         "群推送设置" to listOf(
             CheckRiotStatusAndSettingProcessor,
             CheckIsBotFriendProcessor,
-            AddLocateToDailyStorePushLocatesProcessor
+            DesignateSubscribeSettingProcessor
         ),
         "当前聊天推送设置" to listOf(
             CheckRiotStatusAndSettingProcessor,
             CheckIsBotFriendProcessor,
-            AddCurrentLocateToDailyStorePushLocatesProcessor
+            CurrentSubscribeSettingProcessor
         )
     )
 }
 
 internal val default_help_list: String by lazy {
-    "帮助列表" +
+    "帮助列表\n" +
             default_logic_list.mapIndexed { index, it -> "${index + 1}.${it.first}" }.joinToString("\n") +
-            "退出指令请发送: ${PluginConfig.eventConfig.exitLogicCommand}"
+            "\n退出指令请发送: ${PluginConfig.eventConfig.exitLogicCommand}"
 }
 
 

@@ -1,9 +1,14 @@
+@file:UseSerializers(PathSerializer::class, LocalDateTimeSerializer::class)
+
 package io.tiangou.config
 
+import io.tiangou.LocalDateTimeSerializer
+import io.tiangou.PathSerializer
 import io.tiangou.PluginGlobal
 import io.tiangou.ValorantBotPlugin
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.UseSerializers
 import net.mamoe.mirai.console.data.ReadOnlyPluginConfig
 import net.mamoe.mirai.console.data.ValueDescription
 import net.mamoe.mirai.console.data.value
@@ -31,7 +36,8 @@ object PluginConfig : ReadOnlyPluginConfig("plugin-config") {
     val logoutUserCacheCleanDay: Int by value(30)
 
     @ValueDescription("每日商店, 配件商店绘图比例大小")
-    val storeImageWidthHeightProportion: Pair<Int, Int> by value(9 to 16)
+    val storeImageWidthHeightProportion: ImageProportion by value(ImageProportion(9, 16))
+
 
     @Serializable
     data class EventConfigData(
@@ -191,5 +197,11 @@ object PluginConfig : ReadOnlyPluginConfig("plugin-config") {
 
 
     }
+
+    @Serializable
+    data class ImageProportion(
+        val width: Int,
+        val height: Int,
+    )
 
 }

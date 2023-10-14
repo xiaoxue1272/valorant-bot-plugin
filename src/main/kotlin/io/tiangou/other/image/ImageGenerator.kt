@@ -13,9 +13,9 @@ import kotlinx.coroutines.runInterruptible
 
 object ImageGenerator {
 
-    private val storeWP: Int = PluginConfig.storeImageWidthHeightProportion.first
+    private val storeWidthProportion: Int = PluginConfig.storeImageWidthHeightProportion.width
 
-    private val storeHP: Int = PluginConfig.storeImageWidthHeightProportion.second
+    private val storeHeightProportion: Int = PluginConfig.storeImageWidthHeightProportion.height
 
     private fun createImageContainer(): ImageContainer = when (PluginConfig.drawImageConfig.api) {
         PluginConfig.DrawImageConfig.DrawImageApiEnum.SKIKO -> SkikoImageContainer()
@@ -26,7 +26,7 @@ object ImageGenerator {
         return createImageContainer().let {
             val backgroundBytes = userCache.customBackgroundFile?.readBytes()
                 ?: PluginConfig.drawImageConfig.background.reference.getResourceBytes()!!
-            it.initBackground(backgroundBytes, storeWP, storeHP)
+            it.initBackground(backgroundBytes, storeWidthProportion, storeHeightProportion)
             val width = (it.width - it.width * 0.4f).toInt()
             val height = width / 2
             val containers = when (type) {
