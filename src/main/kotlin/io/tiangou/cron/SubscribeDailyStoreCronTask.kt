@@ -14,8 +14,10 @@ import net.mamoe.mirai.message.data.MessageChainBuilder
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
+
+// todo 再写一个每周配件商店订阅任务 公共推送数据结构部分抽出来
 @Serializable
-class DailyStorePushCronTask(
+class SubscribeDailyStoreCronTask(
     override var cron: String,
     override var isEnable: Boolean
 ) : CronTask() {
@@ -23,7 +25,7 @@ class DailyStorePushCronTask(
 
     override val description: String = "每日商店推送"
 
-    data class UserSubscribePushData(val user: User, val contacts: List<Contact>)
+    data class UserSubscribeLocation(val user: User, val contacts: List<Contact>)
 
     override suspend fun execute() {
         val currentDateTime = now(timeZone.toZoneId()).format()
@@ -31,7 +33,7 @@ class DailyStorePushCronTask(
             .filterValues {
                 it.isRiotAccountLogin
             }.forEach { (userQQ, userCache) ->
-                val userSubscribePushDataList = userCache.mapSubscribeDataByBots(userQQ, getOnlineBots())
+                val userSubscribePushDataList = userCache.mapSubscribeByBot(userQQ, getOnlineBots())
                 userSubscribePushDataList
                     .takeIf { it.isNotEmpty() }
                     ?.forEach { userSubscribePushData ->
@@ -68,26 +70,27 @@ class DailyStorePushCronTask(
     }
 
 
-    private fun UserCache.mapSubscribeDataByBots(userQQ: Long, onlineBots: List<Bot>): List<UserSubscribePushData> {
-        val subscribeLocates = subscribes
+    private fun UserCache.mapSubscribeByBot(userQQ: Long, onlineBots: List<Bot>): List<UserSubscribeLocation> {
+        val contactQQSet = subscribes
             .filterValues { it.contains(SubscribeType.DAILY_STORE) }
             .keys
-            .toHashSet()
-        return onlineBots.mapNotNull {
-            val user = it.getUser(userQQ) ?: return@mapNotNull null
-            val list = mutableListOf<Contact>()
-            subscribeLocates.iterator().forEach { contactQQ ->
-                if (isVisitAllow(contactQQ, it)) {
-                    val contact = it.getContact(contactQQ)
+            .toMutableSet()
+        val result = mutableListOf<UserSubscribeLocation>()
+        onlineBots.forEach { bot ->
+            val user = bot.getUser(userQQ)
+            if (user != null) {
+                val contactList = mutableListOf<Contact>()
+                for (contactQQ in contactQQSet.toList()) {
+                    val contact = bot.getContact(contactQQ)
                     if (contact != null) {
-                        list.add(contact)
-                        subscribeLocates.remove(contactQQ)
+                        contactList.add(contact)
+                        contactQQSet.remove(contactQQ)
                     }
                 }
+                if (contactList.isNotEmpty()) result.add(UserSubscribeLocation(user, contactList))
             }
-            if (list.isEmpty()) return@mapNotNull null
-            UserSubscribePushData(user, list)
         }
+        return result
     }
 
 }

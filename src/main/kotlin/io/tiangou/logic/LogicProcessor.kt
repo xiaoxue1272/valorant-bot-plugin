@@ -15,6 +15,7 @@ import io.tiangou.other.http.actions
 import io.tiangou.other.http.client
 import io.tiangou.other.image.ImageGenerator
 import io.tiangou.repository.UserCache
+import io.tiangou.repository.UserCacheRepository
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import net.mamoe.mirai.console.util.cast
@@ -98,7 +99,7 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
 //            RiotApiHelper.clean(this)
 //            ImageGenerator.clean(this)
             logoutDay = 0
-            clearCacheImages()
+            cleanCacheImages()
             riotClientData.flushAccessToken(authUrl)
             riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
             riotClientData.puuid = RiotApi.PlayerInfo.execute().sub
@@ -106,6 +107,29 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
         }
         reply("登录成功")
     }
+}
+
+@Serializable
+object LogoutRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
+
+    override suspend fun MessageEvent.process(userCache: UserCache) {
+        userCache.isRiotAccountLogin = false
+        userCache.riotClientData.clean()
+        reply("已退出登录")
+    }
+
+}
+
+@Serializable
+object DeleteUserCacheLogicProcessor: LogicProcessor<MessageEvent> {
+
+    override suspend fun MessageEvent.process(userCache: UserCache) {
+        userCache.customBackgroundFile?.delete()
+        userCache.cleanCacheImages()
+        UserCacheRepository.remove(sender.id)
+        reply("已删除用户数据")
+    }
+
 }
 
 @Serializable
@@ -121,7 +145,7 @@ object ChangeLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
                     riotClientData.region = it.region
                     currentEvent reply "设置成功"
 //                    ImageGenerator.clean(userCache)
-                    clearCacheImages()
+                    cleanCacheImages()
 //                    RiotApiHelper.clean(userCache)
                 }
                 return
@@ -133,7 +157,7 @@ object ChangeLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
 }
 
 @Serializable
-object CheckRiotStatusAndSettingProcessor : LogicProcessor<MessageEvent> {
+object CheckRiotStatusLogicProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         if (!userCache.isRiotAccountLogin) {
@@ -147,7 +171,7 @@ object CheckRiotStatusAndSettingProcessor : LogicProcessor<MessageEvent> {
 }
 
 @Serializable
-object CheckIsBotFriendProcessor : LogicProcessor<MessageEvent> {
+object CheckHasBotFriendLogicProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         if (bot.getFriend(sender.id) == null) {
@@ -158,7 +182,7 @@ object CheckIsBotFriendProcessor : LogicProcessor<MessageEvent> {
 }
 
 @Serializable
-object QueryPlayerDailyStoreProcessor : LogicProcessor<MessageEvent> {
+object QueryDailyStoreLogicProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         reply("正在查询每日商店,请稍等")
@@ -190,7 +214,7 @@ object QueryPlayerDailyStoreProcessor : LogicProcessor<MessageEvent> {
 //}
 
 @Serializable
-object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
+object UploadCustomBackgroundLogicProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         reply("请上传背景图片(若要回复为默认背景,请发送\"恢复默认\")")
@@ -199,7 +223,7 @@ object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
                 userCache.synchronous {
                     customBackgroundFile?.delete()
                     customBackgroundFile = null
-                    clearCacheImages()
+                    cleanCacheImages()
                 }
                 reply("已将背景图片恢复至默认")
             } else {
@@ -211,7 +235,7 @@ object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
                 userCache.synchronous {
                     customBackgroundFile = ValorantBotPlugin.dataFolder.resolve("${sender.id}_background.bkg")
                         .apply { writeBytes(client.get(downloadUrl).readBytes()) }
-                    clearCacheImages()
+                    cleanCacheImages()
                 }
                 reply("上传成功")
             }
@@ -221,7 +245,7 @@ object UploadCustomBackgroundProcessor : LogicProcessor<MessageEvent> {
 }
 
 @Serializable
-object QueryPlayerAccessoryStoreProcessor : LogicProcessor<MessageEvent> {
+object QueryAccessoryStoreLogicProcessor : LogicProcessor<MessageEvent> {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         reply("正在查询配件商店,请稍等")
@@ -239,9 +263,14 @@ object QueryPlayerAccessoryStoreProcessor : LogicProcessor<MessageEvent> {
 }
 
 @Serializable
-object DesignateSubscribeSettingProcessor : LogicProcessor<MessageEvent> {
+sealed class AbstractSubscribeSettingLogicProcessor : LogicProcessor<MessageEvent> {
 
-    override suspend fun MessageEvent.process(userCache: UserCache) {
+    data class SubscribeInfo(
+        val currentMessageEvent: MessageEvent,
+        val subscribeType: SubscribeType
+    )
+
+    protected suspend fun MessageEvent.readInputSubscribe(): SubscribeInfo {
         reply(
             MessageChainBuilder()
                 .append("请输入要添加的推送事件\n")
@@ -252,8 +281,20 @@ object DesignateSubscribeSettingProcessor : LogicProcessor<MessageEvent> {
                 .append("\n请输入正确的指令或汉字")
                 .build()
         )
-        var currentMessageEvent = nextMessageEvent()
+        val currentMessageEvent = nextMessageEvent()
         val subscribeType = SubscribeType.findNotNull(currentMessageEvent.toText())
+        return SubscribeInfo(currentMessageEvent, subscribeType)
+    }
+
+}
+
+@Serializable
+object DesignateSubscribeSettingLogicProcessor : AbstractSubscribeSettingLogicProcessor() {
+
+    override suspend fun MessageEvent.process(userCache: UserCache) {
+        val subscribeInfo = readInputSubscribe()
+        val subscribeType = subscribeInfo.subscribeType
+        var currentMessageEvent = subscribeInfo.currentMessageEvent
         currentMessageEvent reply "请输入群号"
         currentMessageEvent = nextMessageEvent()
         val groupId = "\\d+".toRegex().let {
@@ -281,22 +322,11 @@ object DesignateSubscribeSettingProcessor : LogicProcessor<MessageEvent> {
 }
 
 @Serializable
-object CurrentSubscribeSettingProcessor : LogicProcessor<MessageEvent> {
+object CurrentSubscribeSettingLogicProcessor : AbstractSubscribeSettingLogicProcessor() {
 
     override suspend fun MessageEvent.process(userCache: UserCache) {
         if (!isVisitAllow()) return
-        reply(
-            MessageChainBuilder()
-                .append("请输入要添加的推送事件\n")
-                .append(
-                    SubscribeType
-                        .values().joinToString("\n") { "${it.value} : ${it.name}" }
-                )
-                .append("\n请输入正确的指令或汉字")
-                .build()
-        )
-        val currentMessageEvent = nextMessageEvent()
-        val subscribeType = SubscribeType.findNotNull(currentMessageEvent.toText())
+        val (currentMessageEvent, subscribeType) = readInputSubscribe()
         val isCurrentSubscribeNotExists = userCache.subscribes[subject.id]?.contains(subscribeType) != true
         if (isCurrentSubscribeNotExists) {
             if (bot.containsGroup(subject.id)) {
@@ -312,4 +342,54 @@ object CurrentSubscribeSettingProcessor : LogicProcessor<MessageEvent> {
         }
         currentMessageEvent reply "已将当前地点[${subject.id}]的[${subscribeType.value}]的推送状态设置为:${if (isCurrentSubscribeNotExists) "启用" else "停用"}"
     }
+}
+
+@Serializable
+sealed class AbstractViewSubscribeSettingLogicProcessor: LogicProcessor<MessageEvent> {
+
+    protected fun MessageEvent.getSubscribes(userCache: UserCache, contactQQ: Long? = null) =
+        userCache.subscribes
+            .run { if (contactQQ != null) filter { it.key == contactQQ } else this }
+            .mapValues { it.value.map { type -> type.value } }
+            .toList()
+            .joinToString("\n\n") { "${bot.getContactType(it.first)}:[${it.first}]\n订阅类型:[${it.second.joinToString(", ")}]" }
+            .takeIf { it.isNotEmpty() } ?: "暂无推送设置"
+    
+}
+
+@Serializable
+object ViewDesignateSubscribeSettingLogicProcessor: AbstractViewSubscribeSettingLogicProcessor() {
+
+    override suspend fun MessageEvent.process(userCache: UserCache) {
+        reply("请输入群号")
+        val currentMessageEvent = nextMessageEvent()
+        val groupId = "\\d+".toRegex().let {
+            val text = currentMessageEvent.toText()
+            if (!it.matches(text)) {
+                currentMessageEvent reply "输入不正确,无法解析为正确的推送地点"
+                return
+            }
+            text.toLong()
+        }
+        currentMessageEvent reply currentMessageEvent.getSubscribes(userCache, groupId)
+    }
+
+}
+
+@Serializable
+object ViewCurrentSubscribeSettingLogicProcessor: AbstractViewSubscribeSettingLogicProcessor() {
+
+    override suspend fun MessageEvent.process(userCache: UserCache) {
+        reply(getSubscribes(userCache, subject.id))
+    }
+
+}
+
+@Serializable
+object ViewAllSubscribeSettingLogicProcessor: AbstractViewSubscribeSettingLogicProcessor() {
+
+    override suspend fun MessageEvent.process(userCache: UserCache) {
+        reply(getSubscribes(userCache))
+    }
+
 }

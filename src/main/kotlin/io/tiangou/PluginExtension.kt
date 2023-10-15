@@ -7,6 +7,7 @@ import io.tiangou.command.CronTaskCommand
 import io.tiangou.config.PluginConfig
 import io.tiangou.config.VisitConfig
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 import net.mamoe.mirai.Bot
@@ -17,6 +18,8 @@ import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.contact.Group
 import net.mamoe.mirai.contact.Member
 import net.mamoe.mirai.contact.User
+import net.mamoe.mirai.containsFriend
+import net.mamoe.mirai.containsGroup
 import net.mamoe.mirai.event.EventPriority
 import net.mamoe.mirai.event.GlobalEventChannel
 import net.mamoe.mirai.event.events.GroupMessageEvent
@@ -27,6 +30,8 @@ import net.mamoe.mirai.message.data.Image.Key.isUploaded
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
 import java.io.File
 import java.nio.file.Path
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 
 fun MessageChain.toText() = filterIsInstance<PlainText>().toMessageChain().content.trim()
@@ -40,6 +45,8 @@ fun Bot.getUser(qq: Long) = getFriend(qq) ?: getStranger(qq)
 fun Bot.getUserOrFail(qq: Long) = getFriend(qq) ?: getStranger(qq) ?: throw NoSuchElementException("User $id")
 
 fun Bot.getContact(qq: Long) = getUser(qq) ?: getGroup(qq)
+
+fun Bot.getContactType(qq: Long) = if (containsGroup(qq)) "群" else if (containsFriend(qq) || strangers.contains(qq)) "用户" else "未知"
 
 fun Bot.getContactOrFail(qq: Long) = getUser(qq) ?: getGroup(qq) ?: throw NoSuchElementException("Contact $id")
 
@@ -160,6 +167,7 @@ suspend infix fun CommandSender.reply(message: Message) {
 suspend fun uploadImage(bytes: ByteArray, contact: Contact): Image? {
     var uploadImage = contact.uploadImage(bytes.toExternalResource().toAutoCloseable())
     repeat(2) {
+        delay(1.toDuration(DurationUnit.MINUTES))
         if (!uploadImage.isUploaded(contact.bot)) {
             uploadImage =
                 contact.uploadImage(bytes.toExternalResource().toAutoCloseable())

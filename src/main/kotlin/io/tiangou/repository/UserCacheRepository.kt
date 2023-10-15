@@ -44,7 +44,7 @@ data class UserCache(
     suspend fun getOrCacheImage(type: GenerateImageType, block: suspend (GenerateImageType) -> ByteArray) =
         imageCaches.getOrPut(type) { block(type).cache() }
 
-    fun clearCacheImages() = imageCaches.apply { values.forEach { it.clean() } }.clear()
+    fun cleanCacheImages() = imageCaches.apply { values.forEach { it.clean() } }.clear()
 
     fun removeCacheImage(type: GenerateImageType) = imageCaches.remove(type)?.clean()
 
@@ -89,7 +89,7 @@ object UserCacheRepository : AutoFlushStorage<MutableMap<Long, UserCache>>(
     fun remove(qq: Long) {
         data.remove(qq)?.apply {
             customBackgroundFile?.delete()
-            clearCacheImages()
+            cleanCacheImages()
         }
     }
 
@@ -108,12 +108,6 @@ data class OldUserCache(
     var customBackgroundFile: File? = null,
     val dailyStorePushLocates: MutableMap<Long, ContactEnum> = mutableMapOf(),
 ) {
-
-    @Transient
-    val lock = Mutex()
-
-    @Transient
-    val logicController: LogicController = LogicController()
 
     @Serializable
     enum class ContactEnum {

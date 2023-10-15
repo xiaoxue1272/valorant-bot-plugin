@@ -14,7 +14,7 @@ object CronTaskManager : AutoSavePluginConfig("cron-task") {
     @ValueDescription("定时任务集合")
     private val cronTaskList: MutableList<CronTask> by value(
         mutableListOf(
-            DailyStorePushCronTask("0 10 08 * * ? *", true),
+            SubscribeDailyStoreCronTask("0 10 08 * * ? *", true),
             PersistenceDataFlushCronTask("0 0 9 ? * 7 *", true),
             RiotAccountSecurityDataFlushCronTask("0 30 4,12,20 * * ? *", true),
             RiotAccountLoginExpiredCronTask(true)

@@ -5,24 +5,49 @@ import net.mamoe.mirai.event.events.MessageEvent
 
 internal val default_logic_list: List<Pair<String, List<LogicProcessor<MessageEvent>>>> by lazy {
     listOf(
-        "帮助" to listOf(HelpListLogicProcessor),
-        "账号登录" to listOf(LoginRiotAccountLogicProcessor),
-        "设置地区" to listOf(ChangeLocationShardLogicProcessor),
-        "查询商店" to listOf(
-            CheckRiotStatusAndSettingProcessor,
-            QueryPlayerDailyStoreProcessor
+        "帮助" to listOf(
+            HelpListLogicProcessor
         ),
-        "自定义商店背景图" to listOf(UploadCustomBackgroundProcessor),
-        "查询配件商店" to listOf(CheckRiotStatusAndSettingProcessor, QueryPlayerAccessoryStoreProcessor),
+        "账号登录" to listOf(
+            LoginRiotAccountLogicProcessor
+        ),
+        "退出登录" to listOf(
+            LogoutRiotAccountLogicProcessor
+        ),
+        "删除用户数据" to listOf(
+            DeleteUserCacheLogicProcessor
+        ),
+        "设置地区" to listOf(ChangeLocationShardLogicProcessor),
+        "自定义商店背景图" to listOf(UploadCustomBackgroundLogicProcessor),
+        "查询商店" to listOf(
+            CheckRiotStatusLogicProcessor,
+            QueryDailyStoreLogicProcessor
+        ),
+        "查询配件商店" to listOf(
+            CheckRiotStatusLogicProcessor,
+            QueryAccessoryStoreLogicProcessor
+        ),
+//        "查询夜市" to listOf(
+// todo
+//        ),
         "群推送设置" to listOf(
-            CheckRiotStatusAndSettingProcessor,
-            CheckIsBotFriendProcessor,
-            DesignateSubscribeSettingProcessor
+            CheckRiotStatusLogicProcessor,
+            CheckHasBotFriendLogicProcessor,
+            DesignateSubscribeSettingLogicProcessor
+        ),
+        "查看群推送设置" to  listOf(
+            ViewDesignateSubscribeSettingLogicProcessor
         ),
         "当前聊天推送设置" to listOf(
-            CheckRiotStatusAndSettingProcessor,
-            CheckIsBotFriendProcessor,
-            CurrentSubscribeSettingProcessor
+            CheckRiotStatusLogicProcessor,
+            CheckHasBotFriendLogicProcessor,
+            CurrentSubscribeSettingLogicProcessor
+        ),
+        "查看当前聊天推送设置" to listOf(
+            ViewCurrentSubscribeSettingLogicProcessor
+        ),
+        "查看所有推送设置" to listOf(
+            ViewAllSubscribeSettingLogicProcessor
         )
     )
 }
