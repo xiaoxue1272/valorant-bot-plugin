@@ -1,7 +1,10 @@
 package io.tiangou.logic
 
+import io.tiangou.ValueEnum
 import io.tiangou.config.PluginConfig
+import io.tiangou.toValueFieldString
 import net.mamoe.mirai.event.events.MessageEvent
+import net.mamoe.mirai.message.data.MessageChainBuilder
 
 internal val default_logic_list: List<Pair<String, List<LogicProcessor<MessageEvent>>>> by lazy {
     listOf(
@@ -32,21 +35,22 @@ internal val default_logic_list: List<Pair<String, List<LogicProcessor<MessageEv
 //        ),
         "群推送设置" to listOf(
             CheckRiotStatusLogicProcessor,
-            CheckHasBotFriendLogicProcessor,
             DesignateSubscribeSettingLogicProcessor
         ),
         "查看群推送设置" to  listOf(
+            CheckRiotStatusLogicProcessor,
             ViewDesignateSubscribeSettingLogicProcessor
         ),
         "当前聊天推送设置" to listOf(
             CheckRiotStatusLogicProcessor,
-            CheckHasBotFriendLogicProcessor,
             CurrentSubscribeSettingLogicProcessor
         ),
         "查看当前聊天推送设置" to listOf(
+            CheckRiotStatusLogicProcessor,
             ViewCurrentSubscribeSettingLogicProcessor
         ),
         "查看所有推送设置" to listOf(
+            CheckRiotStatusLogicProcessor,
             ViewAllSubscribeSettingLogicProcessor
         )
     )
@@ -58,32 +62,10 @@ internal val default_help_list: String by lazy {
             "\n退出指令请发送: ${PluginConfig.eventConfig.exitLogicCommand}"
 }
 
+internal inline fun <reified E> askEnumMessage() where E : Enum<E>, E : ValueEnum =
+    MessageChainBuilder()
+        .append(toValueFieldString<E>())
+        .append("\n请输入正确的指令或汉字")
+        .build()
 
-internal val ASK_LOCATION_AREA_MESSAGE by lazy {
-    """
-    请输入你想要设置的地区
-    
-    亚洲
-    北美
-    巴西
-    拉丁美洲
-    韩国
-    欧洲
-    
-    请输入正确的地区值
-    """.trimIndent()
-}
 
-enum class ServerLocationEnum(
-    val value: String,
-    val shard: String,
-    val region: String
-) {
-    AP("亚洲", "ap", "ap"),
-    NA("北美", "na", "na"),
-    BR("巴西", "na", "br"),
-    LATAM("拉丁美洲", "na", "latam"),
-    KR("韩国", "kr", "kr"),
-    EU("欧洲", "eu", "eu"),
-    ;
-}

@@ -167,8 +167,8 @@ suspend infix fun CommandSender.reply(message: Message) {
 suspend fun uploadImage(bytes: ByteArray, contact: Contact): Image? {
     var uploadImage = contact.uploadImage(bytes.toExternalResource().toAutoCloseable())
     repeat(2) {
-        delay(1.toDuration(DurationUnit.MINUTES))
         if (!uploadImage.isUploaded(contact.bot)) {
+            delay(10.toDuration(DurationUnit.SECONDS))
             uploadImage =
                 contact.uploadImage(bytes.toExternalResource().toAutoCloseable())
         }
@@ -221,7 +221,7 @@ open class ValorantPluginException(override val message: String?) : Exception()
 /**
  * 生成图片类型
  */
-enum class GenerateImageType(val value: String) {
+enum class GenerateImageType(override val value: String) : ValueEnum {
 
     SKINS_PANEL_LAYOUT("每日商店"),
 
@@ -235,8 +235,8 @@ enum class GenerateImageType(val value: String) {
  */
 @Serializable
 enum class SubscribeType(
-    val value: String
-) {
+    override val value: String
+) : ValueEnum {
     DAILY_STORE("每日商店"),
     WEEKLY_ACCESSORY_STORE("每周配件商店"),
     DAILY_MATCH_SUMMARY_DATA("每日比赛数据统计");
@@ -264,5 +264,41 @@ enum class SubscribeType(
 
     }
 
+}
 
+enum class ServerLocationEnum(
+    override val value: String,
+    val shard: String,
+    val region: String
+) : ValueEnum {
+    AP("亚洲", "ap", "ap"),
+    NA("北美", "na", "na"),
+    BR("巴西", "na", "br"),
+    LATAM("拉丁美洲", "na", "latam"),
+    KR("韩国", "kr", "kr"),
+    EU("欧洲", "eu", "eu"),
+    ;
+
+    companion object {
+
+        fun findByValue(value: String): ServerLocationEnum? =
+            ServerLocationEnum.values().firstOrNull { it.value == value }
+
+        fun findByValueNotNull(value: String): ServerLocationEnum =
+            findByValue(value) ?: throw ValorantPluginException("无效的地区")
+
+        fun findByName(name: String): ServerLocationEnum? =
+            ServerLocationEnum.values().firstOrNull { it.name == name }
+
+        fun findByNameNotNull(name: String): ServerLocationEnum =
+            findByName(name) ?: throw ValorantPluginException("无效的地区")
+
+        fun find(keywords: String): ServerLocationEnum? =
+            ServerLocationEnum.values().firstOrNull { it.name == keywords || it.value == keywords }
+
+        fun findNotNull(keywords: String): ServerLocationEnum =
+            find(keywords) ?: throw ValorantPluginException("无效的地区")
+
+
+    }
 }

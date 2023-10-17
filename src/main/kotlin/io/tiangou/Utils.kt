@@ -11,3 +11,12 @@ fun now(zoneId: ZoneId? = null): LocalDateTime =
 
 fun TemporalAccessor.format(formatter: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE): String =
     formatter.format(this)
+
+interface ValueEnum {
+
+    val value: String
+
+}
+
+inline fun <reified E> toValueFieldString() where E : Enum<E>, E : ValueEnum =
+    enumValues<E>().joinToString("\n") { "${it.value} : ${it.name}" }

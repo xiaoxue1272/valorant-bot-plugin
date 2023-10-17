@@ -115,6 +115,7 @@ object LogoutRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
     override suspend fun MessageEvent.process(userCache: UserCache) {
         userCache.isRiotAccountLogin = false
         userCache.riotClientData.clean()
+        userCache.cleanCacheImages()
         reply("已退出登录")
     }
 
@@ -135,23 +136,16 @@ object DeleteUserCacheLogicProcessor: LogicProcessor<MessageEvent> {
 @Serializable
 object ChangeLocationShardLogicProcessor : LogicProcessor<MessageEvent> {
     override suspend fun MessageEvent.process(userCache: UserCache) {
-        reply(ASK_LOCATION_AREA_MESSAGE)
+        reply(askEnumMessage<ServerLocationEnum>())
         val currentEvent = nextMessageEvent()
-        val result = currentEvent.toText()
-        ServerLocationEnum.values().forEach {
-            if (it.value == result) {
-                userCache.synchronous {
-                    riotClientData.shard = it.shard
-                    riotClientData.region = it.region
-                    currentEvent reply "设置成功"
-//                    ImageGenerator.clean(userCache)
-                    cleanCacheImages()
-//                    RiotApiHelper.clean(userCache)
-                }
-                return
+        userCache.synchronous {
+            ServerLocationEnum.findNotNull(currentEvent.toText()).apply {
+                riotClientData.shard = shard
+                riotClientData.region = region
+                currentEvent reply "设置成功"
+                cleanCacheImages()
             }
         }
-        currentEvent reply "未找到输入的地区"
     }
 
 }
@@ -165,17 +159,6 @@ object CheckRiotStatusLogicProcessor : LogicProcessor<MessageEvent> {
         }
         if (userCache.riotClientData.shard == null && userCache.riotClientData.region == null) {
             throw ValorantPluginException("请先设置地区")
-        }
-    }
-
-}
-
-@Serializable
-object CheckHasBotFriendLogicProcessor : LogicProcessor<MessageEvent> {
-
-    override suspend fun MessageEvent.process(userCache: UserCache) {
-        if (bot.getFriend(sender.id) == null) {
-            throw ValorantPluginException("请添加机器人为好友")
         }
     }
 
@@ -252,7 +235,7 @@ object QueryAccessoryStoreLogicProcessor : LogicProcessor<MessageEvent> {
         val accessoryStoreImage = userCache.getOrCacheImage(GenerateImageType.ACCESSORY_STORE) {
             val storeFront = RiotApiHelper.queryStoreFrontApi(userCache)
             UserImageCacheCleanTask(
-                storeFront.skinsPanelLayout.singleItemOffersRemainingDurationInSeconds.toDuration(DurationUnit.SECONDS),
+                storeFront.accessoryStore.accessoryStoreRemainingDurationInSeconds.toDuration(DurationUnit.SECONDS),
                 it,
                 sender.id
             ).enable()
@@ -271,16 +254,7 @@ sealed class AbstractSubscribeSettingLogicProcessor : LogicProcessor<MessageEven
     )
 
     protected suspend fun MessageEvent.readInputSubscribe(): SubscribeInfo {
-        reply(
-            MessageChainBuilder()
-                .append("请输入要添加的推送事件\n")
-                .append(
-                    SubscribeType
-                        .values().joinToString("\n") { "${it.value} : ${it.name}" }
-                )
-                .append("\n请输入正确的指令或汉字")
-                .build()
-        )
+        reply(askEnumMessage<SubscribeType>())
         val currentMessageEvent = nextMessageEvent()
         val subscribeType = SubscribeType.findNotNull(currentMessageEvent.toText())
         return SubscribeInfo(currentMessageEvent, subscribeType)
