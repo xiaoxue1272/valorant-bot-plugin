@@ -1,6 +1,7 @@
 <h1>Valorant Bot plugin</h1>
 
-## v0.7.0-pre
+## v0.8.0
+**从此版本开始, 后续更新随缘**
 
 Miria Console 插件
 需要安装 Sqlite3
@@ -29,4 +30,6 @@ Miria Console 插件
 只能说如果有大哥愿意赞助我那我真给大伙磕头了.
 
 https://afdian.net/a/xiaoxue1272
+
+****
 
