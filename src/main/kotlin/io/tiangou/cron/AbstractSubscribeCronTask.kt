@@ -3,12 +3,14 @@ package io.tiangou.cron
 import io.tiangou.*
 import io.tiangou.repository.UserCache
 import io.tiangou.repository.UserCacheRepository
+import kotlinx.serialization.Serializable
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.contact.User
 import net.mamoe.mirai.message.data.MessageChainBuilder
 
-abstract class AbstractSubscribeCronTask : CronTask() {
+@Serializable
+sealed class AbstractSubscribeCronTask : CronTask() {
 
     protected data class UserSubscribeLocation(val user: User, val contacts: List<Contact>)
 
