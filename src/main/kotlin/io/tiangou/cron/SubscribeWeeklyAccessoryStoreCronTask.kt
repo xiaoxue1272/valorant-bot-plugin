@@ -1,11 +1,13 @@
 package io.tiangou.cron
 
 import io.tiangou.GenerateImageType
+import io.tiangou.SubscribeType
 import io.tiangou.api.RiotApiHelper
 import io.tiangou.delay.UserImageCacheCleanTask
 import io.tiangou.other.image.ImageGenerator
 import io.tiangou.repository.UserCache
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -15,10 +17,13 @@ class SubscribeWeeklyAccessoryStoreCronTask(
     override var isEnable: Boolean
 ): AbstractSubscribeCronTask() {
 
-
+    @Transient
     override val description: String = "每周配件商店推送"
 
+    @Transient
     override val messageText: String = "本周配件商店"
+
+    override val subscribeType: SubscribeType = SubscribeType.WEEKLY_ACCESSORY_STORE
 
     override suspend fun getUserSubscribeImage(userQQ: Long, userCache: UserCache): ByteArray =
         userCache.getOrCacheImage(GenerateImageType.ACCESSORY_STORE) {

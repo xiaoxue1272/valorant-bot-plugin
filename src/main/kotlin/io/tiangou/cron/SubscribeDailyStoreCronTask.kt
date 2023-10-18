@@ -6,6 +6,7 @@ import io.tiangou.delay.UserImageCacheCleanTask
 import io.tiangou.other.image.ImageGenerator
 import io.tiangou.repository.UserCache
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -18,9 +19,13 @@ class SubscribeDailyStoreCronTask(
 ) : AbstractSubscribeCronTask() {
 
 
+    @Transient
     override val description: String = "每日商店推送"
 
+    @Transient
     override val messageText: String = "今日商店"
+
+    override val subscribeType: SubscribeType = SubscribeType.DAILY_STORE
 
     override suspend fun getUserSubscribeImage(userQQ: Long, userCache: UserCache) =
         userCache.getOrCacheImage(GenerateImageType.SKINS_PANEL_LAYOUT) {

@@ -16,6 +16,8 @@ sealed class AbstractSubscribeCronTask : CronTask() {
 
     abstract val messageText: String
 
+    abstract val subscribeType: SubscribeType
+
     abstract suspend fun getUserSubscribeImage(userQQ: Long, userCache: UserCache) : ByteArray
 
     override suspend fun execute() {
@@ -49,7 +51,7 @@ sealed class AbstractSubscribeCronTask : CronTask() {
 
     private fun UserCache.mapSubscribeByBot(userQQ: Long, onlineBots: List<Bot>): List<UserSubscribeLocation> {
         val contactQQSet = subscribes
-            .filterValues { it.contains(SubscribeType.DAILY_STORE) }
+            .filterValues { it.contains(subscribeType) }
             .keys
             .toMutableSet()
         val result = mutableListOf<UserSubscribeLocation>()
