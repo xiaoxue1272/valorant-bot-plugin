@@ -22,6 +22,8 @@ class SubscribeDailyStoreCronTask(
 
     override val messageText: String = "今日商店"
 
+    override val subscribeType: SubscribeType = SubscribeType.DAILY_STORE
+
     override suspend fun getUserSubscribeImage(userQQ: Long, userCache: UserCache) =
         userCache.getOrCacheImage(GenerateImageType.SKINS_PANEL_LAYOUT) {
             val storeFront = RiotApiHelper.queryStoreFrontApi(userCache)

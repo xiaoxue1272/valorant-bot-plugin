@@ -3,18 +3,18 @@ package io.tiangou.cron
 import io.tiangou.*
 import io.tiangou.repository.UserCache
 import io.tiangou.repository.UserCacheRepository
-import kotlinx.serialization.Serializable
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.contact.User
 import net.mamoe.mirai.message.data.MessageChainBuilder
 
-@Serializable
-sealed class AbstractSubscribeCronTask : CronTask() {
+abstract class AbstractSubscribeCronTask : CronTask() {
 
     protected data class UserSubscribeLocation(val user: User, val contacts: List<Contact>)
 
     abstract val messageText: String
+
+    abstract val subscribeType: SubscribeType
 
     abstract suspend fun getUserSubscribeImage(userQQ: Long, userCache: UserCache) : ByteArray
 
@@ -49,7 +49,7 @@ sealed class AbstractSubscribeCronTask : CronTask() {
 
     private fun UserCache.mapSubscribeByBot(userQQ: Long, onlineBots: List<Bot>): List<UserSubscribeLocation> {
         val contactQQSet = subscribes
-            .filterValues { it.contains(SubscribeType.DAILY_STORE) }
+            .filterValues { it.contains(subscribeType) }
             .keys
             .toMutableSet()
         val result = mutableListOf<UserSubscribeLocation>()

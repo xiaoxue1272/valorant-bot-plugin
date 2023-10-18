@@ -1,6 +1,7 @@
 package io.tiangou.cron
 
 import io.tiangou.GenerateImageType
+import io.tiangou.SubscribeType
 import io.tiangou.api.RiotApiHelper
 import io.tiangou.delay.UserImageCacheCleanTask
 import io.tiangou.other.image.ImageGenerator
@@ -19,6 +20,8 @@ class SubscribeWeeklyAccessoryStoreCronTask(
     override val description: String = "每周配件商店推送"
 
     override val messageText: String = "本周配件商店"
+
+    override val subscribeType: SubscribeType = SubscribeType.WEEKLY_ACCESSORY_STORE
 
     override suspend fun getUserSubscribeImage(userQQ: Long, userCache: UserCache): ByteArray =
         userCache.getOrCacheImage(GenerateImageType.ACCESSORY_STORE) {
