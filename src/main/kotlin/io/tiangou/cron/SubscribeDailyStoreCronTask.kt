@@ -25,6 +25,7 @@ class SubscribeDailyStoreCronTask(
     @Transient
     override val messageText: String = "今日商店"
 
+    @Transient
     override val subscribeType: SubscribeType = SubscribeType.DAILY_STORE
 
     override suspend fun getUserSubscribeImage(userQQ: Long, userCache: UserCache) =

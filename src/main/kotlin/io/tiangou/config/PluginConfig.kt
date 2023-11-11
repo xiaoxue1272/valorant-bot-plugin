@@ -30,6 +30,9 @@ object PluginConfig : ReadOnlyPluginConfig("plugin-config") {
     val drawImageConfig: DrawImageConfig by value(DrawImageConfig())
 
     @ValueDescription("用户未登录状态下保留Riot账号信息的天数")
+    val enableSecurityTokenExpiredRemind: Boolean by value(true)
+
+    @ValueDescription("用户未登录状态下保留Riot账号信息的天数")
     val logoutRiotAccountCleanDay: Int by value(7)
 
     @ValueDescription("用户未登录状态下保留用户信息的天数")

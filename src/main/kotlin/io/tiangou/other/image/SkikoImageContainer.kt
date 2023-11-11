@@ -94,7 +94,7 @@ class SkikoImageContainer : ImageContainer {
         top: Int,
         alpha: Float
     ): ImageContainer {
-        val image = byteToImage(bytes)
+        val image: Image = byteToImage(bytes)
         surface.canvas.drawImageRect(
             image,
             Rect.makeXYWH(left.toFloat(), top.toFloat(), imageWidth.toFloat(), imageHeight.toFloat()),

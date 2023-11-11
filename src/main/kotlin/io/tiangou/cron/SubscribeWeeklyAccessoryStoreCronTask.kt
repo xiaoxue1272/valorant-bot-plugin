@@ -23,6 +23,7 @@ class SubscribeWeeklyAccessoryStoreCronTask(
     @Transient
     override val messageText: String = "本周配件商店"
 
+    @Transient
     override val subscribeType: SubscribeType = SubscribeType.WEEKLY_ACCESSORY_STORE
 
     override suspend fun getUserSubscribeImage(userQQ: Long, userCache: UserCache): ByteArray =
