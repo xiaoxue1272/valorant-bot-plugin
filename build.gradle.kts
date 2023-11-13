@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.tiangou"
-version = "0.8.2"
+version = "0.8.3"
 
 val ktorVersion = "2.3.4"
 val skikoVersion = "0.7.80"
