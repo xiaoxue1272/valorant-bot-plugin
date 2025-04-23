@@ -40,21 +40,18 @@ internal suspend fun tryRequest(
             }
         }
     }
-    throw ValorantPluginException("API请求失败,且重试次数已达上限,请稍候再试")
+    throw ApiException(ApiErrorEnum.API_REQUEST_FAILED)
 }
 
 class ApiException(
-    message: String
-) : ValorantPluginException(message) {
-
-    constructor(errorEnum: ApiErrorEnum) : this(errorEnum.errorMessage)
-
-}
+    val errorEnum: ApiErrorEnum
+) : ValorantPluginException(errorEnum.errorMessage)
 
 enum class ApiErrorEnum(
     val errorMessage: String
 ) {
 
-    API_REQUEST_FAILED_GET_ENTITLEMENTS_TOKEN("entitlements_token获取失败,请重新登录"),
+    API_REQUEST_FAILED("API请求失败,且重试次数已达上限,请稍候再试"),
+    ENTITLEMENTS_TOKEN_EXPIRED("entitlements_token获取失败,请重新登录"),
 
 }

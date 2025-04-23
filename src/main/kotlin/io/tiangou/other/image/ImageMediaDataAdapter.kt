@@ -34,6 +34,24 @@ object SkinsPanelLayout : ImageMediaDataAdapter<StoreFrontResponse, List<SkinIma
         }
 }
 
+
+object BonusStore : ImageMediaDataAdapter<StoreFrontResponse.BonusStore, List<SkinImageData>> {
+    override fun convert(arg: StoreFrontResponse.BonusStore): List<SkinImageData> =
+        arg.bonusStoreOffers.map { obj ->
+            val skinLevel = WeaponSkinLevel(obj.offer.offerID).queryOne()
+            val skin = WeaponSkin(skinLevel?.weaponSkinUuid).queryOne()
+            val theme = skin?.themeUuid?.let { Theme(it).queryOne() }
+            val contentTier = skin?.contentTiersUuid?.let { ContentTier(it).queryOne() }
+            SkinImageData(
+                skinLevel?.displayIcon,
+                contentTier?.displayIcon,
+                theme?.displayIcon,
+                contentTier?.highlightColor,
+                skinLevel?.displayName
+            )
+        }
+}
+
 object AccessoryStore : ImageMediaDataAdapter<StoreFrontResponse, List<AccessoryImageData>> {
 
     enum class AccessoryItemType(val value: String) {
@@ -47,7 +65,7 @@ object AccessoryStore : ImageMediaDataAdapter<StoreFrontResponse, List<Accessory
 
         companion object {
             fun match(value: String): AccessoryItemType {
-                values().forEach {
+                entries.forEach {
                     if (it.value == value) return it
                 }
                 throw IllegalArgumentException("value is not in AccessoryItemType")

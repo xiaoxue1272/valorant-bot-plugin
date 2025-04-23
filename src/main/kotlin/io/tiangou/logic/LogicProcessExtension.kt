@@ -30,9 +30,10 @@ internal val default_logic_list: List<Pair<String, List<LogicProcessor<MessageEv
             CheckRiotStatusLogicProcessor,
             QueryAccessoryStoreLogicProcessor
         ),
-//        "查询夜市" to listOf(
-// todo
-//        ),
+        "查询夜市" to listOf(
+            CheckRiotStatusLogicProcessor,
+            QueryBonusStoreLogicProcessor
+        ),
         "群推送设置" to listOf(
             CheckRiotStatusLogicProcessor,
             DesignateSubscribeSettingLogicProcessor

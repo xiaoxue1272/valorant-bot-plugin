@@ -1,5 +1,6 @@
 package io.tiangou.cron
 
+import io.tiangou.api.ApiErrorEnum
 import io.tiangou.api.ApiException
 import io.tiangou.api.RiotApi
 import io.tiangou.config.PluginConfig
@@ -9,6 +10,7 @@ import io.tiangou.other.http.actions
 import io.tiangou.reply
 import io.tiangou.repository.UserCacheRepository
 import kotlinx.serialization.Serializable
+import net.mamoe.mirai.console.util.safeCast
 
 @Serializable
 class RiotAccountSecurityDataFlushCronTask(
@@ -26,7 +28,11 @@ class RiotAccountSecurityDataFlushCronTask(
                         flushAccessToken(RiotApi.CookieReAuth.execute())
                         flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
                     }.onFailure {
-                        if (it is ApiException) {
+                        if (it.safeCast<ApiException>()?.errorEnum == ApiErrorEnum.ENTITLEMENTS_TOKEN_EXPIRED) {
+                            if (securityTokenRetryTimes < PluginConfig.securityTokenRetryTimes) {
+                                securityTokenRetryTimes ++
+                                return@onFailure
+                            }
                             isRiotAccountLogin = false
                             if (PluginConfig.enableSecurityTokenExpiredRemind) {
                                 getOnlineBots().firstNotNullOfOrNull { bot -> bot.getUser(qq) }?.reply("Riot账号安全令牌刷新失败:[${it.message}]")

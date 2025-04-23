@@ -228,7 +228,11 @@ enum class GenerateImageType(override val value: String) : ValueEnum {
     // 每周三早上8点刷新
     ACCESSORY_STORE("配件商店"),
 
+    BONUS_STORE("夜市")
+
 }
+
+class UnSupportGenerateImageTypeException(message: String): ValorantPluginException(message)
 
 /**
  * 订阅定时任务类型
@@ -244,23 +248,23 @@ enum class SubscribeType(
 
     companion object {
 
-        fun findByValue(value: String): SubscribeType? = SubscribeType.values().firstOrNull { it.value == value }
+        fun findByValue(value: String): SubscribeType? = SubscribeType.entries.firstOrNull { it.value == value }
 
         fun findByValueNotNull(value: String): SubscribeType =
             findByValue(value) ?: throw ValorantPluginException("无效的订阅类型")
 
-        fun findByName(name: String): SubscribeType? = SubscribeType.values().firstOrNull { it.name == name }
+        fun findByName(name: String): SubscribeType? = SubscribeType.entries.firstOrNull { it.name == name }
 
         fun findByNameNotNull(name: String): SubscribeType =
             findByName(name) ?: throw ValorantPluginException("无效的订阅类型")
 
         fun find(keywords: String): SubscribeType? =
-            SubscribeType.values().firstOrNull { it.name == keywords || it.value == keywords }
+            SubscribeType.entries.firstOrNull { it.name == keywords || it.value == keywords }
 
         fun findNotNull(keywords: String): SubscribeType =
             find(keywords) ?: throw ValorantPluginException("无效的订阅类型")
 
-        fun all() = values().toMutableList()
+        fun all() = SubscribeType.entries.toMutableList()
 
     }
 
@@ -282,19 +286,19 @@ enum class ServerLocationEnum(
     companion object {
 
         fun findByValue(value: String): ServerLocationEnum? =
-            ServerLocationEnum.values().firstOrNull { it.value == value }
+            ServerLocationEnum.entries.firstOrNull { it.value == value }
 
         fun findByValueNotNull(value: String): ServerLocationEnum =
             findByValue(value) ?: throw ValorantPluginException("无效的地区")
 
         fun findByName(name: String): ServerLocationEnum? =
-            ServerLocationEnum.values().firstOrNull { it.name == name }
+            ServerLocationEnum.entries.firstOrNull { it.name == name }
 
         fun findByNameNotNull(name: String): ServerLocationEnum =
             findByName(name) ?: throw ValorantPluginException("无效的地区")
 
         fun find(keywords: String): ServerLocationEnum? =
-            ServerLocationEnum.values().firstOrNull { it.name == keywords || it.value == keywords }
+            ServerLocationEnum.entries.firstOrNull { it.name == keywords || it.value == keywords }
 
         fun findNotNull(keywords: String): ServerLocationEnum =
             find(keywords) ?: throw ValorantPluginException("无效的地区")

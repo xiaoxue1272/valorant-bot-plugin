@@ -18,13 +18,10 @@ internal object UserCookiesStorage : CookiesStorage {
 
     override suspend fun get(requestUrl: Url): List<Cookie> {
         return (coroutineContext[ClientData] ?: defaultClientData).run {
-            val oldestCookie: AtomicLong = oldestCookieTimestamp
-            cookies.let { cookies ->
-                mutex.withLock(cookies) {
-                    val date = GMTDate()
-                    if (date.timestamp >= oldestCookie.get()) cleanup(this, date.timestamp)
-                    cookies.filter { it.matches(requestUrl) }
-                }
+            mutex.withLock(cookies) {
+                val date = GMTDate()
+                if (date.timestamp >= oldestCookieTimestamp.get()) cleanup(this, date.timestamp)
+                cookies.filter { it.matches(requestUrl) }
             }
         }
     }

@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit
 
 
 internal val client: HttpClient = HttpClient(OkHttp) {
+
     followRedirects = false
     engine {
         config {
@@ -28,9 +29,6 @@ internal val client: HttpClient = HttpClient(OkHttp) {
     Charsets {
         register(Charsets.UTF_8)
     }
-//    install(Logging) {
-//        level = LogLevel.ALL
-//    }
     install(HttpRequestRetry) {
         retryOnServerErrors(maxRetries = 3)
         exponentialDelay()

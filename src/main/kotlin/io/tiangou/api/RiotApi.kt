@@ -13,18 +13,21 @@ import io.tiangou.other.http.ClientData
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 import net.mamoe.mirai.console.util.safeCast
+import net.mamoe.mirai.utils.MiraiLogger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.coroutineContext
 
 sealed class RiotApi<in T : Any, out R : Any> : ApiInvoker<T, R> {
 
+    private val logger: MiraiLogger = MiraiLogger.Factory.create(RiotApi::class)
 
     override suspend fun execute(requestBody: T?): R {
         val riotClientData = coroutineContext[ClientData]?.safeCast<RiotClientData>()
         val request = prepareRequest(requestBody)
         riotClientData?.onRequest(request)
         val response = tryRequest(request, 1) {
-            riotClientData?.onResponse(this)
+            logger.warning("Riot API 请求失败: ${::toString}, body: ${::bodyAsText}")
+            riotClientData?.onRequestFailed(this)
             riotClientData?.onRequest(request)
         }
         return prepareResponse(response)
@@ -185,10 +188,10 @@ class RiotClientData(
         }
     }
 
-    suspend fun onResponse(response: HttpResponse) {
+    suspend fun onRequestFailed(response: HttpResponse) {
         if (response.status.value in 400..499) {
             if (response.request.url.toString() == RiotApi.EntitlementsAuth.ENTITLEMENTS_AUTH_URL) {
-                throw ApiException(ApiErrorEnum.API_REQUEST_FAILED_GET_ENTITLEMENTS_TOKEN)
+                throw ApiException(ApiErrorEnum.ENTITLEMENTS_TOKEN_EXPIRED)
             }
             flushAccessToken(RiotApi.CookieReAuth.execute())
             flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)

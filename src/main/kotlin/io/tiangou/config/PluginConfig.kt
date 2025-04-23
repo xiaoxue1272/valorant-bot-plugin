@@ -29,8 +29,11 @@ object PluginConfig : ReadOnlyPluginConfig("plugin-config") {
     @ValueDescription("绘图相关配置")
     val drawImageConfig: DrawImageConfig by value(DrawImageConfig())
 
-    @ValueDescription("用户未登录状态下保留Riot账号信息的天数")
+    @ValueDescription("是否开启已登录用户安全令牌失效提示")
     val enableSecurityTokenExpiredRemind: Boolean by value(true)
+
+    @ValueDescription("从登录状态改为未登录状态的刷新失败次数")
+    val securityTokenRetryTimes: Int by value(3)
 
     @ValueDescription("用户未登录状态下保留Riot账号信息的天数")
     val logoutRiotAccountCleanDay: Int by value(7)
@@ -77,7 +80,7 @@ object PluginConfig : ReadOnlyPluginConfig("plugin-config") {
     }
 
     @Serializable
-    data class DatabaseConfigData internal constructor(
+    data class DatabaseConfigData(
         @ValueDescription("数据库连接JDBC URL")
         val jdbcUrl: String = "jdbc:sqlite:${ValorantBotPlugin.dataFolder}${File.separator}ValorantPlugin.DB3",
         @ValueDescription("是否在插件加载时就初始化数据库数据")
@@ -91,7 +94,7 @@ object PluginConfig : ReadOnlyPluginConfig("plugin-config") {
     }
 
     @Serializable
-    data class ResourceResolveConfigData internal constructor(
+    data class ResourceResolveConfigData(
         @ValueDescription(
             """
                 背景图片的地址类型
@@ -143,7 +146,7 @@ object PluginConfig : ReadOnlyPluginConfig("plugin-config") {
     }
 
     @Serializable
-    data class DrawImageConfig internal constructor(
+    data class DrawImageConfig(
         @ValueDescription(
             """
                 SKIKO: 使用Skiko进行绘图(某些CPU架构可能不支持)
@@ -169,7 +172,7 @@ object PluginConfig : ReadOnlyPluginConfig("plugin-config") {
         }
 
         @Serializable
-        data class FontConfigData internal constructor(
+        data class FontConfigData(
             @ValueDescription("字体资源路径配置")
             val reference: ResourceResolveConfigData = ResourceResolveConfigData(),
             @ValueDescription("字体颜色 默认白色")
@@ -177,7 +180,7 @@ object PluginConfig : ReadOnlyPluginConfig("plugin-config") {
         )
 
         @Serializable
-        data class BackgroundConfigData internal constructor(
+        data class BackgroundConfigData(
             @ValueDescription("默认背景资源路径配置")
             val reference: ResourceResolveConfigData = ResourceResolveConfigData(
                 ResourceResolveConfigData.ResourceReferenceType.URL,

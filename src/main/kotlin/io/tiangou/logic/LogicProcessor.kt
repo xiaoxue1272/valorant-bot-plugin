@@ -96,9 +96,8 @@ object LoginRiotAccountLogicProcessor : LogicProcessor<MessageEvent> {
 
     private suspend fun MessageEvent.afterLogin(userCache: UserCache, authUrl: String) {
         userCache.apply {
-//            RiotApiHelper.clean(this)
-//            ImageGenerator.clean(this)
             logoutDay = 0
+            securityTokenRetryTimes = 0
             cleanCacheImages()
             riotClientData.flushAccessToken(authUrl)
             riotClientData.flushXRiotEntitlementsJwt(RiotApi.EntitlementsAuth.execute().entitlementsToken)
@@ -182,19 +181,6 @@ object QueryDailyStoreLogicProcessor : LogicProcessor<MessageEvent> {
 
     }
 }
-
-//@Serializable
-//object SubscribeTaskDailyStoreProcessor : LogicProcessor<MessageEvent> {
-//    override suspend fun MessageEvent.process(userCache: UserCache) {
-//        userCache.synchronous {
-//            val dailyStore = UserCache.SubscribeType.DAILY_STORE
-//            val status: String =
-//                if (subscribeTypeList.remove(dailyStore)) "关闭"
-//                else subscribeTypeList.add(dailyStore).let { "开启" }
-//            reply("已将你的每日商店推送状态设置为:$status")
-//        }
-//    }
-//}
 
 @Serializable
 object UploadCustomBackgroundLogicProcessor : LogicProcessor<MessageEvent> {
@@ -366,4 +352,27 @@ object ViewAllSubscribeSettingLogicProcessor: AbstractViewSubscribeSettingLogicP
         reply(getSubscribes(userCache))
     }
 
+}
+
+@Serializable
+object QueryBonusStoreLogicProcessor : LogicProcessor<MessageEvent> {
+
+    override suspend fun MessageEvent.process(userCache: UserCache) {
+        val bonusStore = RiotApiHelper.queryStoreFrontApi(userCache).bonusStore
+        if (bonusStore == null) {
+            reply("暂无夜市信息")
+            return
+        }
+        reply("正在查询夜市,请稍等")
+        val bonusStoreImage = userCache.getOrCacheImage(GenerateImageType.BONUS_STORE) {
+            UserImageCacheCleanTask(
+                bonusStore.bonusStoreRemainingDurationInSeconds.toDuration(DurationUnit.SECONDS),
+                it,
+                sender.id
+            ).enable()
+            ImageGenerator.bonusStoreImage(userCache, bonusStore)
+        }.getOrFail()
+        replyImage(bonusStoreImage)
+
+    }
 }

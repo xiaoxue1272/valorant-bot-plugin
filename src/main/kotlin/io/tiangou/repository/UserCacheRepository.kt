@@ -18,6 +18,7 @@ data class UserCache(
     val riotClientData: RiotClientData = RiotClientData(),
     var isRiotAccountLogin: Boolean = false,
     var logoutDay: Int = 0,
+    var securityTokenRetryTimes: Int = 0,
     var customBackgroundFile: File? = null,
     val subscribes: MutableMap<Long, MutableList<SubscribeType>> = mutableMapOf(),
 ) {
@@ -125,6 +126,7 @@ class OldUserCacheDataStructureAdapter :
             val userCache = UserCache(
                 it.value.riotClientData,
                 it.value.isRiotAccountLogin,
+                0,
                 0,
                 it.value.customBackgroundFile,
                 subscribes = it.value.dailyStorePushLocates.mapValues {

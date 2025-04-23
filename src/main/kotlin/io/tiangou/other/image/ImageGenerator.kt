@@ -3,6 +3,7 @@ package io.tiangou.other.image
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.tiangou.GenerateImageType
+import io.tiangou.UnSupportGenerateImageTypeException
 import io.tiangou.api.data.StoreFrontResponse
 import io.tiangou.config.PluginConfig
 import io.tiangou.other.http.client
@@ -34,32 +35,48 @@ object ImageGenerator {
                     SkinsPanelLayout.convert(storeFront).map { data ->
                         skinsPanelLayoutImage(width, height, data)
                     }
-
                 GenerateImageType.ACCESSORY_STORE ->
                     AccessoryStore.convert(storeFront).map { data ->
                         accessoryStoreImage(width, height, data)
                     }
+                else -> throw UnSupportGenerateImageTypeException("暂不支持当前生成当前类型的图片: ${type.value}")
             }
-            runInterruptible(Dispatchers.IO) {
-                containers.forEachIndexed { index, container ->
-                    val lr = it.width * 0.4f
-                    val imageWidth = it.width - lr
-                    val imageHeight = container.height * (imageWidth / container.width)
-                    val top =
-                        (it.height - imageHeight * containers.size - it.height * 0.05f * (containers.size - 1)) / 2
-                    it.drawImage(
-                        container.generate(),
-                        imageWidth.toInt(),
-                        imageHeight.toInt(),
-                        (lr / 2f).toInt(),
-                        (top + (imageHeight + it.height * 0.05f) * index).toInt()
-                    )
-                }
-                it.generate()
-            }
+            drawImageListOnBackground(containers, it)
         }
     }
 
+    suspend fun bonusStoreImage(userCache: UserCache, bonusStore: StoreFrontResponse.BonusStore): ByteArray {
+        return createImageContainer().let {
+            val backgroundBytes = userCache.customBackgroundFile?.readBytes()
+                ?: PluginConfig.drawImageConfig.background.reference.getResourceBytes()!!
+            it.initBackground(backgroundBytes, storeWidthProportion, storeHeightProportion)
+            val width = (it.width - it.width * 0.4f).toInt()
+            val height = width / 2
+            val containers = BonusStore.convert(bonusStore).map { data ->
+                skinsPanelLayoutImage(width, height, data)
+            }
+            drawImageListOnBackground(containers, it)
+        }
+    }
+
+    private suspend fun drawImageListOnBackground(containers: List<ImageContainer>, background: ImageContainer): ByteArray =
+        runInterruptible(Dispatchers.IO) {
+            containers.forEachIndexed { index, container ->
+                val lr = background.width * 0.4f
+                val imageWidth = background.width - lr
+                val imageHeight = container.height * (imageWidth / container.width)
+                val top =
+                    (background.height - imageHeight * containers.size - background.height * 0.05f * (containers.size - 1)) / 2
+                background.drawImage(
+                    container.generate(),
+                    imageWidth.toInt(),
+                    imageHeight.toInt(),
+                    (lr / 2f).toInt(),
+                    (top + (imageHeight + background.height * 0.05f) * index).toInt()
+                )
+            }
+            background.generate()
+        }
 
     private suspend fun skinsPanelLayoutImage(width: Int, height: Int, data: SkinImageData): ImageContainer =
         createImageContainer().apply {
